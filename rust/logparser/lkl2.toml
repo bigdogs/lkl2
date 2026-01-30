@@ -1,26 +1,30 @@
 # predefined variables
 # $line => currentline
 # $lineno => current line number
-
-[table]
-# 原始日志
-[table.logs]
-id = "uniqueId"
-lineNumber= "data:$lineno, uint32, noindex"
-rawLog = "data:$line"
-
-# 结构化日志 前端展示用
-# 简单一点的话就all by string, 不搞类型
-[table.fields]
-id = "uniqueId"
-lineNumber= "data:$lineno, uint32"
-eventTime = "uint64($line.Event.paltformUtcTime)"
-eventName = "string($line.Event.telemetryEventName)"
-sourceNodeId = "uint64($line.Event.SourcenodeId)"
-targetNodeId = "uint64($line.Event.TargetnodeId)"
-
+#
+# 数据库
+# id unique key, 默认添加
+# raw， 默认添加
+# -- fts5 表 ---
+# CREATE VIRTUAL TABLE logs_fts USING fts5(
+#     raw_log,
+#     content='logs',
+#     content_rowid='id'
+# );
+# -- 触发器 ---
+# CREATE TRIGGER logs_ai AFTER INSERT ON logs BEGIN
+#     INSERT INTO logs_fts(rowid, raw) VALUES (new.id, new.raw);
+# END;
+[logs]
+# 字段全定义为TEXT类型
+lineNumber= "$lineno"
+eventTime = "$line.Event.paltformUtcTime"
+eventName = "$line.Event.telemetryEventName"
+sourceNodeId = "$line.Event.SourcenodeId"
+targetNodeId = "$line.Event.TargetnodeId"
 
 [[col]]
+with = 120
 expr = "local_time($0.Event.paltformUtcTime)"
 
 [[col]]
@@ -28,12 +32,3 @@ expr = "$cur.Event.telemetryEventName"
 
 [[col]]
 expr = "$cur.Event.telemetryEventName"
-
-
-# sqlite内存数据库存储字段
-[index]
-raw = "$0"
-telemetryEventName = "$0.Event.telemetryEventName"
-eventId = "$0.Event.eventId"
-sourceNodeId = "$0.Event.sourceNodeId"
-targetNodeId = "$0.Event.targetNodeId"

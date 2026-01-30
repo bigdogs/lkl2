@@ -1,7 +1,7 @@
+use anyhow::Result;
 use rust_embed::RustEmbed;
 use serde::Deserialize;
 use std::collections::HashMap;
-use anyhow::Result;
 
 #[derive(RustEmbed)]
 #[folder = "."]
@@ -10,7 +10,7 @@ struct Asset;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
-    pub index: HashMap<String, String>,
+    pub logs: HashMap<String, String>,
 }
 
 impl Config {

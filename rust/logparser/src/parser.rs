@@ -1,22 +1,25 @@
 use serde_json::Value;
 
-pub fn extract_field(root: &Value, path: &str) -> String {
-    if path == "$0" {
-        return root.to_string();
+pub fn extract_field(root: &Value, path: &str, line: &str, line_no: usize) -> String {
+    if path == "$lineno" {
+        return line_no.to_string();
     }
-    
-    let parts: Vec<&str> = if path.starts_with("$0.") {
-        path["$0.".len()..].split('.').collect()
+
+    if path == "$line" || path == "$0" {
+        return line.to_string();
+    }
+
+    let path = if let Some(stripped) = path.strip_prefix("$line.") {
+        stripped
+    } else if let Some(stripped) = path.strip_prefix("$0.") {
+        stripped
     } else {
-        // If it doesn't start with $0., assume it's relative or invalid. 
-        // For now return empty or try to traverse?
-        // Given the spec, let's assume it always starts with $0
         return String::new();
     };
 
     let mut current = root;
-    
-    for part in parts {
+
+    for part in path.split('.') {
         match current {
             Value::Object(map) => {
                 if let Some(val) = map.get(part) {
@@ -28,7 +31,7 @@ pub fn extract_field(root: &Value, path: &str) -> String {
             _ => return String::new(),
         }
     }
-    
+
     match current {
         Value::String(s) => s.clone(),
         Value::Null => String::new(),

@@ -1,6 +1,6 @@
+use crate::config::Config;
 use anyhow::Result;
 use rusqlite::Connection;
-use crate::config::Config;
 use std::collections::HashMap;
 
 pub struct Db {
@@ -11,37 +11,53 @@ pub struct Db {
 impl Db {
     pub fn new(config: &Config) -> Result<Self> {
         let conn = Connection::open_in_memory()?;
-        
-        let mut columns: Vec<String> = config.index.keys().cloned().collect();
-        columns.sort(); // Ensure deterministic order for column mapping
-        
-        if columns.is_empty() {
-             anyhow::bail!("No columns defined in config");
+
+        let mut columns: Vec<String> = config.logs.keys().cloned().collect();
+        columns.sort();
+
+        for col in &columns {
+            let lower = col.to_lowercase();
+            if lower == "id" || lower == "raw" {
+                anyhow::bail!("Column '{}' is reserved and cannot be redefined", col);
+            }
         }
 
-        let schema = columns.iter()
-            .map(|c| format!("{} TEXT", c))
-            .collect::<Vec<_>>()
-            .join(", ");
-            
-        // Add 'line_number' to track the original file line
-        let create_sql = format!("CREATE TABLE logs (line_number INTEGER, {})", schema);
+        let mut schema_parts = vec!["id INTEGER PRIMARY KEY".to_string(), "raw TEXT".to_string()];
+        schema_parts.extend(columns.iter().map(|c| format!("{} TEXT", c)));
+        let create_sql = format!("CREATE TABLE logs ({})", schema_parts.join(", "));
         conn.execute(&create_sql, [])?;
-        
+
+        conn.execute(
+            "CREATE VIRTUAL TABLE logs_fts USING fts5(raw_log, content='logs', content_rowid='id')",
+            [],
+        )?;
+        conn.execute_batch(
+            "CREATE TRIGGER logs_ai AFTER INSERT ON logs BEGIN
+    INSERT INTO logs_fts(rowid, raw_log) VALUES (new.id, new.raw);
+END;",
+        )?;
+
         Ok(Db { conn, columns })
     }
 
-    pub fn insert_batch(&mut self, rows: &[(usize, HashMap<String, String>)]) -> Result<()> {
+    pub fn insert_batch(&mut self, rows: &[(String, HashMap<String, String>)]) -> Result<()> {
         let tx = self.conn.transaction()?;
         {
-            let placeholders = vec!["?"; self.columns.len()].join(",");
-            // Insert line_number as the first column
-            let sql = format!("INSERT INTO logs (line_number, {}) VALUES (?, {})", self.columns.join(","), placeholders);
+            let mut insert_columns = Vec::with_capacity(self.columns.len() + 1);
+            insert_columns.push("raw".to_string());
+            insert_columns.extend(self.columns.iter().cloned());
+            let placeholders = vec!["?"; insert_columns.len()].join(",");
+            let sql = format!(
+                "INSERT INTO logs ({}) VALUES ({})",
+                insert_columns.join(","),
+                placeholders
+            );
             let mut stmt = tx.prepare(&sql)?;
 
-            for (line_num, row) in rows {
-                let mut values: Vec<rusqlite::types::Value> = Vec::new();
-                values.push((*line_num as i64).into()); // Add line_number
+            for (raw, row) in rows {
+                let mut values: Vec<rusqlite::types::Value> =
+                    Vec::with_capacity(insert_columns.len());
+                values.push(raw.clone().into());
 
                 for col in &self.columns {
                     let val = row.get(col).cloned().unwrap_or_default();
