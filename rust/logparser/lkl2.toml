@@ -10,6 +10,7 @@ lineNumber= "data:$lineno, uint32, noindex"
 rawLog = "data:$line"
 
 # 结构化日志 前端展示用
+# 简单一点的话就all by string, 不搞类型
 [table.fields]
 id = "uniqueId"
 lineNumber= "data:$lineno, uint32"
