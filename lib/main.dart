@@ -1,11 +1,13 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:lkl2/src/rust/api/simple.dart';
 import 'package:lkl2/src/rust/frb_generated.dart';
 
 Future<void> main() async {
-  await RustLib.init();
+  await RustLib.init(
+      externalLibrary: ExternalLibrary.process(iKnowHowToUseIt: true));
   runApp(const MyApp());
 }
 
