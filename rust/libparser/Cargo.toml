@@ -16,3 +16,4 @@ toml = "0.7"
 rust-embed = { version = "8.5", features = ["include-exclude"] }
 indexmap = "=2.2.6"
 globset = "=0.4.14"
+rustyline = "17.0.1"

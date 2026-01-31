@@ -18,6 +18,7 @@ pub struct LoadStats {
     pub total_duration: Duration,
     pub read_duration: Duration,
     pub db_duration: Duration,
+    pub fts_duration: Duration,
 }
 
 pub struct QueryResult {
@@ -122,6 +123,11 @@ impl Engine {
             )?;
         }
 
+        let fts_start = Instant::now();
+        self.db.rebuild_fts()?;
+        let fts_duration = fts_start.elapsed();
+        total_db_duration += fts_duration;
+
         let total_duration = start_total.elapsed();
         let read_duration = total_duration.saturating_sub(total_db_duration);
 
@@ -129,6 +135,7 @@ impl Engine {
             inserted_lines,
             total_duration,
             read_duration,
+            fts_duration,
             db_duration: total_db_duration,
         })
     }

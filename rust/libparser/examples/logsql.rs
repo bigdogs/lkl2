@@ -1,6 +1,8 @@
 use anyhow::Result;
 use argh::FromArgs;
 use libparser::{Engine, QueryResult};
+use rustyline::error::ReadlineError;
+use rustyline::DefaultEditor;
 use std::io::{self, Write};
 
 #[derive(FromArgs)]
@@ -11,15 +13,16 @@ struct Args {
 }
 
 fn main() -> Result<()> {
-    env_logger::init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let args: Args = argh::from_env();
     let mut engine = Engine::from_embedded_config()?;
     let stats = engine.load_file(&args.file)?;
     log::info!(
-        "Loaded {} lines. Read {:?}, SQLite {:?}, Total {:?}",
+        "Loaded {} lines. Read {:?}, SQLite {:?}, FTS {:?}, Total {:?}",
         stats.inserted_lines,
         stats.read_duration,
         stats.db_duration,
+        stats.fts_duration,
         stats.total_duration
     );
     log::info!("Table 'logs' is ready. Columns: {:?}", engine.columns());
@@ -27,37 +30,44 @@ fn main() -> Result<()> {
 }
 
 fn run_repl(engine: &Engine) -> Result<()> {
-    let stdin = io::stdin();
-    let mut stdout = io::stdout();
+    let mut rl = DefaultEditor::new()?;
     let mut input_buffer = String::new();
-    let mut line_buffer = String::new();
 
     loop {
-        print_prompt(&mut stdout, &input_buffer)?;
-        line_buffer.clear();
-        let read = stdin.read_line(&mut line_buffer)?;
-        if read == 0 {
-            break;
-        }
-        if should_exit(&input_buffer, &line_buffer) {
-            break;
-        }
-        input_buffer.push_str(&line_buffer);
-        if line_buffer.trim_end().ends_with(';') {
-            handle_query(engine, &mut stdout, &input_buffer)?;
-            input_buffer.clear();
-        }
-    }
-    Ok(())
-}
+        let prompt = if input_buffer.is_empty() {
+            "> "
+        } else {
+            "... "
+        };
+        let readline = rl.readline(prompt);
+        match readline {
+            Ok(line) => {
+                if should_exit(&input_buffer, &line) {
+                    break;
+                }
+                input_buffer.push_str(&line);
+                input_buffer.push('\n');
 
-fn print_prompt(stdout: &mut impl Write, input_buffer: &str) -> Result<()> {
-    if input_buffer.is_empty() {
-        write!(stdout, "> ")?;
-    } else {
-        write!(stdout, "... ")?;
+                if line.trim_end().ends_with(';') {
+                    rl.add_history_entry(input_buffer.as_str())?;
+                    handle_query(engine, &mut io::stdout(), &input_buffer)?;
+                    input_buffer.clear();
+                }
+            }
+            Err(ReadlineError::Interrupted) => {
+                log::info!("CTRL-C");
+                break;
+            }
+            Err(ReadlineError::Eof) => {
+                log::info!("CTRL-D");
+                break;
+            }
+            Err(err) => {
+                log::error!("Error: {:?}", err);
+                break;
+            }
+        }
     }
-    stdout.flush()?;
     Ok(())
 }
 

@@ -28,16 +28,17 @@ impl Db {
         conn.execute(&create_sql, [])?;
 
         conn.execute(
-            "CREATE VIRTUAL TABLE logs_fts USING fts5(raw_log, content='logs', content_rowid='id')",
+            "CREATE VIRTUAL TABLE logs_fts USING fts5(raw, content='logs', content_rowid='id', tokenize='trigram', detail='none')",
             [],
-        )?;
-        conn.execute_batch(
-            "CREATE TRIGGER logs_ai AFTER INSERT ON logs BEGIN
-    INSERT INTO logs_fts(rowid, raw_log) VALUES (new.id, new.raw);
-END;",
         )?;
 
         Ok(Db { conn, columns })
+    }
+
+    pub fn rebuild_fts(&self) -> Result<()> {
+        self.conn
+            .execute("INSERT INTO logs_fts(logs_fts) VALUES('rebuild')", [])?;
+        Ok(())
     }
 
     pub fn insert_batch(&mut self, rows: &[(String, HashMap<String, String>)]) -> Result<()> {

@@ -22,8 +22,8 @@ def generate_log_entry():
 
 def main():
     """Generates log file with a target size of ~1GB."""
-    target_size_gb = 1
-    target_size_bytes = target_size_gb * 1024 * 1024 * 1024
+    target_size_mb = 100
+    target_size_bytes = target_size_mb * 1024 * 1024
     output_file = "/tmp/xxx.log"
     
     # Ensure the directory exists
