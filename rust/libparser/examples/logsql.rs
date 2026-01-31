@@ -1,6 +1,6 @@
 use anyhow::Result;
 use argh::FromArgs;
-use logparser::{Engine, QueryResult};
+use libparser::{Engine, QueryResult};
 use std::io::{self, Write};
 
 #[derive(FromArgs)]
