@@ -2,19 +2,29 @@ import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:lkl2/src/rust/file.dart';
+import 'package:lkl2/data/repository/log_repository.dart';
 
 class LogProvider extends ChangeNotifier {
+  final ILogRepository _repository;
+
+  LogProvider({ILogRepository? repository})
+    : _repository = repository ?? LogRepository();
+
   FileStatus _status = const FileStatus.uninit();
   List<Log> _logs = [];
   int _totalCount = 0;
 
   // Filter/Search
   String _filterSql = "";
-  String _ftsQuery = "";
+  // String _ftsQuery = "";
 
   // Search Results (Bottom Panel)
   List<Log> _searchResults = [];
   bool _isSearching = false;
+
+  // UI State
+  bool _showLineNumbers = true;
+  String? _currentFilePath;
 
   Timer? _statusTimer;
 
@@ -23,6 +33,8 @@ class LogProvider extends ChangeNotifier {
   int get totalCount => _totalCount;
   List<Log> get searchResults => _searchResults;
   bool get isSearching => _isSearching;
+  bool get showLineNumbers => _showLineNumbers;
+  String? get currentFilePath => _currentFilePath;
 
   @override
   void dispose() {
@@ -45,7 +57,7 @@ class LogProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await openFile(path: path);
+      await _repository.openFile(path);
       _startPolling();
     } catch (e) {
       _status = FileStatus.error(e.toString());
@@ -58,7 +70,7 @@ class LogProvider extends ChangeNotifier {
     _statusTimer = Timer.periodic(const Duration(milliseconds: 500), (
       timer,
     ) async {
-      final newStatus = await getFileStatus();
+      final newStatus = await _repository.getFileStatus();
       _status = newStatus;
       notifyListeners();
 
@@ -80,7 +92,7 @@ class LogProvider extends ChangeNotifier {
     if (_status is! FileStatus_Complete) return;
 
     try {
-      final result = await getLogs(
+      final result = await _repository.getLogs(
         filterSql: _filterSql,
         ftsQuery: "",
         limit: limit,
@@ -99,8 +111,19 @@ class LogProvider extends ChangeNotifier {
     await fetchLogs();
   }
 
+  void toggleLineNumbers() {
+    _showLineNumbers = !_showLineNumbers;
+    notifyListeners();
+  }
+
+  Future<void> reload() async {
+    if (_currentFilePath != null) {
+      await openLogFile(_currentFilePath!);
+    }
+  }
+
   Future<void> search(String query) async {
-    _ftsQuery = query;
+    // _ftsQuery = query;
     if (query.isEmpty) {
       _searchResults = [];
       notifyListeners();
@@ -111,7 +134,7 @@ class LogProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await getLogs(
+      final result = await _repository.getLogs(
         filterSql: _filterSql,
         ftsQuery: query,
         limit: 100, // Limit search results for now
@@ -127,6 +150,6 @@ class LogProvider extends ChangeNotifier {
   }
 
   Future<String?> getDetail(int id) async {
-    return await getLogDetail(id: id);
+    return await _repository.getLogDetail(id);
   }
 }
