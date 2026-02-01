@@ -5,103 +5,135 @@ import 'package:provider/provider.dart';
 import 'package:lkl2/log_provider.dart';
 import 'package:lkl2/ui/widgets/log_view_layout.dart';
 import 'package:lkl2/src/rust/file.dart';
+import 'package:lkl2/ui/widgets/app_menu.dart';
+import 'package:desktop_drop/desktop_drop.dart';
+import 'package:cross_file/cross_file.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  bool _isDragging = false;
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<LogProvider>();
 
-    if (Platform.isMacOS) {
-      return PlatformMenuBar(
-        menus: [
-          PlatformMenu(
-            label: 'File',
-            menus: [
-              PlatformMenuItem(
-                label: 'Open',
-                shortcut: const SingleActivator(
-                  LogicalKeyboardKey.keyO,
-                  meta: true,
-                ),
-                onSelected: () => provider.pickAndOpenFile(),
-              ),
-            ],
-          ),
-          PlatformMenu(
-            label: 'View',
-            menus: [
-              PlatformMenuItem(
-                label: provider.showLineNumbers
-                    ? 'Hide Line Numbers'
-                    : 'Show Line Numbers',
-                onSelected: () => provider.toggleLineNumbers(),
-              ),
-              PlatformMenuItem(
-                label: 'Reload',
-                shortcut: const SingleActivator(
-                  LogicalKeyboardKey.keyR,
-                  meta: true,
-                ),
-                onSelected: () => provider.reload(),
-              ),
-            ],
+    final menus = [
+      MenuGroupData(
+        label: 'File',
+        items: [
+          MenuItemData(
+            label: 'Open',
+            onSelected: () => provider.pickAndOpenFile(),
+            shortcut: const SingleActivator(
+              LogicalKeyboardKey.keyO,
+              meta: true,
+              control: true, // Handle both for cross-platform
+            ),
           ),
         ],
-        child: Scaffold(body: _buildBody(context, provider)),
+      ),
+      MenuGroupData(
+        label: 'View',
+        items: [
+          MenuItemData(
+            label: provider.showLineNumbers
+                ? 'Hide Line Numbers'
+                : 'Show Line Numbers',
+            onSelected: () => provider.toggleLineNumbers(),
+          ),
+          MenuItemData(
+            label: 'Reload',
+            onSelected: () => provider.reload(),
+            shortcut: const SingleActivator(
+              LogicalKeyboardKey.keyR,
+              meta: true,
+              control: true,
+            ),
+          ),
+        ],
+      ),
+    ];
+
+    if (Platform.isMacOS) {
+      return PlatformMenuBar(
+        menus: AppMenuBuilder.buildPlatformMenus(menus),
+        child: Scaffold(
+          body: DropTarget(
+            onDragDone: (detail) async {
+              if (detail.files.isNotEmpty) {
+                await provider.openLogFile(detail.files.first.path);
+              }
+            },
+            onDragEntered: (detail) {
+              setState(() {
+                _isDragging = true;
+              });
+            },
+            onDragExited: (detail) {
+              setState(() {
+                _isDragging = false;
+              });
+            },
+            child: _buildBody(context, provider),
+          ),
+        ),
       );
     } else {
       // Windows / Linux
       return Scaffold(
-        body: Column(
-          children: [
-            MenuBar(
-              children: [
-                SubmenuButton(
-                  menuChildren: [
-                    MenuItemButton(
-                      onPressed: () => provider.pickAndOpenFile(),
-                      shortcut: const SingleActivator(
-                        LogicalKeyboardKey.keyO,
-                        control: true,
-                      ),
-                      child: const Text('Open'),
-                    ),
-                  ],
-                  child: const Text('File'),
-                ),
-                SubmenuButton(
-                  menuChildren: [
-                    MenuItemButton(
-                      onPressed: () => provider.toggleLineNumbers(),
-                      child: Text(
-                        provider.showLineNumbers
-                            ? 'Hide Line Numbers'
-                            : 'Show Line Numbers',
-                      ),
-                    ),
-                    MenuItemButton(
-                      onPressed: () => provider.reload(),
-                      shortcut: const SingleActivator(
-                        LogicalKeyboardKey.keyR,
-                        control: true,
-                      ),
-                      child: const Text('Reload'),
-                    ),
-                  ],
-                  child: const Text('View'),
-                ),
-              ],
-            ),
-            Expanded(child: _buildBody(context, provider)),
-          ],
+        body: DropTarget(
+          onDragDone: (detail) async {
+            if (detail.files.isNotEmpty) {
+              await provider.openLogFile(detail.files.first.path);
+            }
+          },
+          onDragEntered: (detail) {
+            setState(() {
+              _isDragging = true;
+            });
+          },
+          onDragExited: (detail) {
+            setState(() {
+              _isDragging = false;
+            });
+          },
+          child: Column(
+            children: [
+              AppMenuBuilder.buildMenuBar(menus),
+              Expanded(child: _buildBody(context, provider)),
+            ],
+          ),
         ),
       );
     }
   }
 
   Widget _buildBody(BuildContext context, LogProvider provider) {
+    if (_isDragging) {
+      return Container(
+        color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+        child: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.file_upload, size: 64, color: Colors.blue),
+              SizedBox(height: 16),
+              Text(
+                "Release to open file",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return provider.status.when(
       uninit: () =>
           const Center(child: Text("Drag file or Open file to start")),

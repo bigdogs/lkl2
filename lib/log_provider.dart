@@ -21,6 +21,7 @@ class LogProvider extends ChangeNotifier {
   // Search Results (Bottom Panel)
   List<Log> _searchResults = [];
   bool _isSearching = false;
+  String? _searchError;
 
   // UI State
   bool _showLineNumbers = true;
@@ -33,6 +34,7 @@ class LogProvider extends ChangeNotifier {
   int get totalCount => _totalCount;
   List<Log> get searchResults => _searchResults;
   bool get isSearching => _isSearching;
+  String? get searchError => _searchError;
   bool get showLineNumbers => _showLineNumbers;
   String? get currentFilePath => _currentFilePath;
 
@@ -124,6 +126,7 @@ class LogProvider extends ChangeNotifier {
 
   Future<void> search(String query) async {
     // _ftsQuery = query;
+    _searchError = null;
     if (query.isEmpty) {
       _searchResults = [];
       notifyListeners();
@@ -143,6 +146,8 @@ class LogProvider extends ChangeNotifier {
       _searchResults = result.logs;
     } catch (e) {
       debugPrint("Error searching: $e");
+      _searchError = e.toString();
+      _searchResults = [];
     } finally {
       _isSearching = false;
       notifyListeners();

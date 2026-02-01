@@ -13,12 +13,14 @@ class LogList extends StatelessWidget {
       return const Center(child: Text("No logs"));
     }
 
-    return ListView.builder(
-      itemCount: logs.length,
-      itemBuilder: (context, index) {
-        final log = logs[index];
-        return LogItem(log: log);
-      },
+    return SelectionArea(
+      child: ListView.builder(
+        itemCount: logs.length,
+        itemBuilder: (context, index) {
+          final log = logs[index];
+          return LogItem(log: log);
+        },
+      ),
     );
   }
 }

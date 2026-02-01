@@ -9,23 +9,22 @@ Future<void> main() async {
   await RustLib.init(
     externalLibrary: ExternalLibrary.process(iKnowHowToUseIt: true),
   );
-  runApp(const MyApp());
+  runApp(const Lkl2());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class Lkl2 extends StatelessWidget {
+  const Lkl2({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [ChangeNotifierProvider(create: (_) => LogProvider())],
       child: MaterialApp(
-        title: 'LKL2 Log Viewer',
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
             seedColor: Colors.blue,
-            brightness: Brightness.dark,
+            brightness: Brightness.light,
           ),
         ),
         home: const HomePage(),

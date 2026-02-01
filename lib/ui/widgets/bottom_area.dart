@@ -51,12 +51,26 @@ class BottomArea extends StatelessWidget {
           ),
         ),
         // Results
+        if (provider.searchError != null)
+          Container(
+            padding: const EdgeInsets.all(8),
+            width: double.infinity,
+            color: Theme.of(context).colorScheme.errorContainer,
+            child: Text(
+              "Search Error: ${provider.searchError}",
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onErrorContainer,
+              ),
+            ),
+          ),
         Expanded(
           child: provider.isSearching
               ? const Center(child: CircularProgressIndicator())
               : LogList(logs: provider.searchResults),
         ),
-        if (provider.searchResults.isEmpty && !provider.isSearching)
+        if (provider.searchResults.isEmpty &&
+            !provider.isSearching &&
+            provider.searchError == null)
           Container(
             padding: const EdgeInsets.all(4),
             width: double.infinity,

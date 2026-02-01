@@ -11,18 +11,7 @@ class MainLogArea extends StatelessWidget {
     final provider = context.watch<LogProvider>();
 
     return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          child: const Row(
-            children: [
-              Text("Main Logs", style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
-        Expanded(child: LogList(logs: provider.logs)),
-      ],
+      children: [Expanded(child: LogList(logs: provider.logs))],
     );
   }
 }

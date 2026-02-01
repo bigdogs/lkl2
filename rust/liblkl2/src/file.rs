@@ -94,7 +94,10 @@ pub fn get_logs(
         if !fts_query.trim().is_empty() {
             // Using subquery for FTS
             // "id IN (SELECT rowid FROM logs_fts WHERE logs_fts MATCH 'query')"
-            where_clauses.push(format!("id IN (SELECT rowid FROM logs_fts WHERE logs_fts MATCH '{}')", fts_query.replace("'", "''")));
+            // Use phrase search to avoid syntax errors with special characters
+            // Escape double quotes and single quotes
+            let escaped_query = fts_query.replace("'", "''").replace("\"", "\"\"");
+            where_clauses.push(format!("id IN (SELECT rowid FROM logs_fts WHERE logs_fts MATCH '\"{}\"')", escaped_query));
         }
         
         // Normal filter
