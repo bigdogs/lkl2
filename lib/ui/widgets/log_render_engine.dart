@@ -105,7 +105,7 @@ class LogRenderEngine {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.2),
+            color: Colors.grey.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
@@ -189,28 +189,28 @@ class LogRenderEngine {
 
 class LogRenderConfig {
   final List<LogColumn> columns;
+  final List<String> fields;
 
-  const LogRenderConfig(this.columns);
+  const LogRenderConfig(this.columns, {this.fields = const []});
 
   factory LogRenderConfig.defaultConfig() {
-    return LogRenderConfig([
-      LogColumn(
-        width: 180,
-        rows: [LogCell(expr: r'time($eventTime)', style: 'meta')],
-      ),
-      LogColumn(
-        flex: 3,
-        rows: [LogCell(expr: r'$eventName', style: 'text')],
-      ),
-    ]);
+    return LogRenderConfig(
+      [
+        LogColumn(
+          width: 180,
+          rows: [LogCell(expr: r'time($eventTime)', style: 'meta')],
+        ),
+        LogColumn(
+          flex: 3,
+          rows: [LogCell(expr: r'$eventName', style: 'text')],
+        ),
+      ],
+      fields: ['eventTime', 'eventName'],
+    );
   }
 
   factory LogRenderConfig.fromToml(String content) {
-    final parsed = _parseColumns(content);
-    if (parsed.isEmpty) {
-      return LogRenderConfig.defaultConfig();
-    }
-    return LogRenderConfig(parsed);
+    return _parseConfig(content);
   }
 }
 
@@ -231,10 +231,13 @@ class LogCell {
   const LogCell({required this.expr, this.style, this.maxLines, this.ellipsis});
 }
 
-List<LogColumn> _parseColumns(String content) {
+LogRenderConfig _parseConfig(String content) {
   final columns = <_ColumnBuilder>[];
+  final fields = <String>[];
+
   _ColumnBuilder? currentCol;
   _RowBuilder? currentRow;
+  String currentSection = '';
 
   void flushRow() {
     if (currentRow != null && currentCol != null) {
@@ -256,8 +259,16 @@ List<LogColumn> _parseColumns(String content) {
     if (line.isEmpty || line.startsWith('#')) {
       continue;
     }
+
+    if (line == '[logs]') {
+      flushCol();
+      currentSection = 'logs';
+      continue;
+    }
+
     if (line == '[[col]]') {
       flushCol();
+      currentSection = 'col';
       currentCol = _ColumnBuilder();
       continue;
     }
@@ -266,12 +277,11 @@ List<LogColumn> _parseColumns(String content) {
         continue;
       }
       flushRow();
+      currentSection = 'col.row';
       currentRow = _RowBuilder();
       continue;
     }
-    if (currentCol == null) {
-      continue;
-    }
+
     final idx = line.indexOf('=');
     if (idx == -1) {
       continue;
@@ -279,16 +289,23 @@ List<LogColumn> _parseColumns(String content) {
     final key = line.substring(0, idx).trim();
     final value = _stripQuotes(line.substring(idx + 1).trim());
 
-    if (currentRow != null) {
-      currentRow!.apply(key, value);
-    } else {
-      currentCol!.apply(key, value);
+    if (currentSection == 'logs') {
+      fields.add(key);
+    } else if (currentSection == 'col' || currentSection == 'col.row') {
+      if (currentRow != null) {
+        currentRow!.apply(key, value);
+      } else if (currentCol != null) {
+        currentCol!.apply(key, value);
+      }
     }
   }
 
   flushCol();
 
-  return columns.map((c) => c.build()).where((c) => c.rows.isNotEmpty).toList();
+  return LogRenderConfig(
+    columns.map((c) => c.build()).where((c) => c.rows.isNotEmpty).toList(),
+    fields: fields,
+  );
 }
 
 class _ColumnBuilder {

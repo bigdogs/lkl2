@@ -4,6 +4,43 @@ import 'package:flutter/material.dart';
 import 'package:lkl2/src/rust/file.dart';
 import 'package:lkl2/data/repository/log_repository.dart';
 
+enum FilterMode {
+  equals,
+  contains;
+
+  String toSql(String field, String value) {
+    // Basic sanitization to prevent breaking the SQL string
+    final sanitized = value.replaceAll("'", "''");
+    switch (this) {
+      case FilterMode.equals:
+        return "$field = '$sanitized'";
+      case FilterMode.contains:
+        return "$field LIKE '%$sanitized%'";
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case FilterMode.equals:
+        return "Equals";
+      case FilterMode.contains:
+        return "Contains";
+    }
+  }
+}
+
+class FilterCondition {
+  final String field;
+  final FilterMode mode;
+  final String value;
+
+  FilterCondition({
+    required this.field,
+    required this.mode,
+    required this.value,
+  });
+}
+
 class LogProvider extends ChangeNotifier {
   final ILogRepository _repository;
 
@@ -16,6 +53,12 @@ class LogProvider extends ChangeNotifier {
 
   // Filter/Search
   String _filterSql = "";
+  final List<FilterCondition> _filters = [];
+  String _lastSearchQuery = "";
+
+  List<FilterCondition> get filters => _filters;
+  String get lastSearchQuery => _lastSearchQuery;
+
   // String _ftsQuery = "";
 
   // Search Results (Bottom Panel)
@@ -95,7 +138,7 @@ class LogProvider extends ChangeNotifier {
 
     try {
       final result = await _repository.getLogs(
-        filterSql: _filterSql,
+        filterSql: "", // Main window is never filtered
         ftsQuery: "",
         limit: limit,
         offset: offset,
@@ -104,13 +147,42 @@ class LogProvider extends ChangeNotifier {
       _totalCount = result.totalCount;
       notifyListeners();
     } catch (e) {
-      print("Error fetching logs: $e");
+      debugPrint("Error fetching logs: $e");
     }
   }
 
+  void addFilter(FilterCondition condition) {
+    _filters.add(condition);
+    notifyListeners();
+  }
+
+  void removeFilter(FilterCondition condition) {
+    _filters.remove(condition);
+    notifyListeners();
+  }
+
+  void clearFilters() {
+    _filters.clear();
+    _filterSql = "";
+    notifyListeners();
+    search(_lastSearchQuery);
+  }
+
+  Future<void> applyFilters() async {
+    if (_filters.isEmpty) {
+      _filterSql = "";
+    } else {
+      _filterSql = _filters
+          .map((f) => f.mode.toSql(f.field, f.value))
+          .join(" AND ");
+    }
+    await search(_lastSearchQuery);
+  }
+
   Future<void> setFilter(String filter) async {
+    // Legacy/Manual SQL support
     _filterSql = filter;
-    await fetchLogs();
+    await search(_lastSearchQuery);
   }
 
   void toggleLineNumbers() {
@@ -125,9 +197,11 @@ class LogProvider extends ChangeNotifier {
   }
 
   Future<void> search(String query) async {
-    // _ftsQuery = query;
+    _lastSearchQuery = query;
     _searchError = null;
-    if (query.isEmpty) {
+
+    // If no query and no filter, clear results
+    if (query.isEmpty && _filterSql.isEmpty) {
       _searchResults = [];
       notifyListeners();
       return;
