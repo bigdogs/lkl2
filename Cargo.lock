@@ -686,7 +686,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "flutter_rust_bridge",
+ "libparser",
  "once_cell",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

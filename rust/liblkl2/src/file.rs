@@ -1,25 +1,185 @@
-pub struct FilePending {}
+use anyhow::Result;
+use libparser::{Config, Engine};
+use once_cell::sync::Lazy;
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::thread;
 
+// Define structs compatible with FRB
+
+#[derive(Clone, Debug)]
+pub struct Log {
+    pub id: u32,
+    pub fields: HashMap<String, String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Logs {
+    pub logs: Vec<Log>,
+    pub total_count: u32,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum FileStatus {
-    Unint,    // 没有文件
-    Pending,  // 正在解析
-    Complete, // 解析完成
-    Error,    //解析出错
+    Uninit,
+    Pending,
+    Complete,
+    Error(String),
 }
 
-pub struct Logs {}
-
-/// 在后台打开一个新文件
-/// 目前只打算支持一个实例，所以老的会把新的踢掉
-pub fn open(path: &str) {
-    todo!()
+// Global State
+struct AppState {
+    engine: Option<Engine>,
+    status: FileStatus,
 }
 
-/// 获取当前文件状态
-pub fn status(id: usize) -> FileStatus {
-    todo!()
+static STATE: Lazy<Mutex<AppState>> = Lazy::new(|| {
+    Mutex::new(AppState {
+        engine: None,
+        status: FileStatus::Uninit,
+    })
+});
+
+/// 1.1 dart打开文件 -> rust后台开启线程处理文件
+pub fn open_file(path: String) {
+    // Set status to Pending
+    {
+        let mut state = STATE.lock().unwrap();
+        state.status = FileStatus::Pending;
+        state.engine = None;
+    }
+
+    thread::spawn(move || {
+        let res = (|| -> Result<Engine> {
+            let config = Config::load()?;
+            let mut engine = Engine::new(config)?;
+            engine.load_file(&path)?;
+            Ok(engine)
+        })();
+
+        let mut state = STATE.lock().unwrap();
+        match res {
+            Ok(engine) => {
+                state.engine = Some(engine);
+                state.status = FileStatus::Complete;
+            }
+            Err(e) => {
+                state.status = FileStatus::Error(e.to_string());
+            }
+        }
+    });
 }
 
-pub fn logs(filter: &str, limit: u32, offset: u32) -> Logs {
-    todo!()
+/// 1.2 dart查询文件状态
+pub fn get_file_status() -> FileStatus {
+    let state = STATE.lock().unwrap();
+    state.status.clone()
+}
+
+/// 1.3 dart查询日志 （这里不返回详细信息)
+/// filter_sql: SQL WHERE clause fragment (e.g., "eventName = 'Error'")
+/// fts_query: Full text search query
+pub fn get_logs(
+    filter_sql: String,
+    fts_query: String,
+    limit: u32,
+    offset: u32,
+) -> Result<Logs> {
+    let state = STATE.lock().unwrap();
+    if let Some(engine) = &state.engine {
+        // 1. Build Base Query
+        let mut where_clauses = Vec::new();
+        
+        // FTS filter
+        if !fts_query.trim().is_empty() {
+            // Using subquery for FTS
+            // "id IN (SELECT rowid FROM logs_fts WHERE logs_fts MATCH 'query')"
+            where_clauses.push(format!("id IN (SELECT rowid FROM logs_fts WHERE logs_fts MATCH '{}')", fts_query.replace("'", "''")));
+        }
+        
+        // Normal filter
+        if !filter_sql.trim().is_empty() {
+            where_clauses.push(format!("({})", filter_sql));
+        }
+
+        let where_str = if where_clauses.is_empty() {
+            "".to_string()
+        } else {
+            format!("WHERE {}", where_clauses.join(" AND "))
+        };
+
+        // 2. Get Count
+        let count_query = format!("SELECT COUNT(*) FROM logs {}", where_str);
+        // We use engine.execute_query which returns string results. 
+        // Ideally libparser should expose a way to get raw values or we parse the string.
+        let count_res = engine.execute_query(&count_query)?;
+        let total_count: u32 = if !count_res.rows.is_empty() && !count_res.rows[0].is_empty() {
+             count_res.rows[0][0].parse().unwrap_or(0)
+        } else {
+            0
+        };
+
+        // 3. Get Data
+        // We need to select columns excluding 'raw'
+        let columns = engine.columns(); 
+        // columns() returns ["id", "raw", "col1", "col2"...]
+        // We want to select "id", "col1", "col2"...
+        let select_cols: Vec<String> = columns.iter()
+            .filter(|c| c.as_str() != "raw")
+            .cloned()
+            .collect();
+        
+        let select_str = select_cols.join(", ");
+        
+        let data_query = format!(
+            "SELECT {} FROM logs {} LIMIT {} OFFSET {}",
+            select_str, where_str, limit, offset
+        );
+        
+        let query_res = engine.execute_query(&data_query)?;
+        
+        // Map to Logs
+        let mut logs = Vec::new();
+        let headers = query_res.headers; // These should match select_cols
+        
+        for row in query_res.rows {
+            let mut fields = HashMap::new();
+            let mut id = 0;
+            
+            for (i, val) in row.iter().enumerate() {
+                if i < headers.len() {
+                    let col_name = &headers[i];
+                    if col_name == "id" {
+                        id = val.parse().unwrap_or(0);
+                    } else {
+                        fields.insert(col_name.clone(), val.clone());
+                    }
+                }
+            }
+            logs.push(Log { id, fields });
+        }
+        
+        Ok(Logs { logs, total_count })
+    } else {
+        Ok(Logs {
+            logs: vec![],
+            total_count: 0,
+        })
+    }
+}
+
+/// 1.4 dart查询特定日志的详细信息
+pub fn get_log_detail(id: u32) -> Result<Option<String>> {
+    let state = STATE.lock().unwrap();
+    if let Some(engine) = &state.engine {
+        let query = format!("SELECT raw FROM logs WHERE id = {}", id);
+        let res = engine.execute_query(&query)?;
+        if !res.rows.is_empty() && !res.rows[0].is_empty() {
+            Ok(Some(res.rows[0][0].clone()))
+        } else {
+            Ok(None)
+        }
+    } else {
+        Ok(None)
+    }
 }

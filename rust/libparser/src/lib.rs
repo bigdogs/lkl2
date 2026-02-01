@@ -10,7 +10,7 @@ pub mod config;
 pub mod db;
 pub mod parser;
 
-use config::Config;
+pub use config::Config;
 use db::Db;
 
 pub struct LoadStats {
