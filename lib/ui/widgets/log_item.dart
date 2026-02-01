@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:lkl2/log_provider.dart';
 import 'package:lkl2/src/rust/file.dart';
+import 'package:lkl2/ui/widgets/log_render_engine.dart';
 
 class LogItem extends StatelessWidget {
   final Log log;
@@ -13,74 +14,35 @@ class LogItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<LogProvider>();
-    final fields = log.fields;
-    final time = fields["eventTime"] ?? "";
-    final name = fields["eventName"] ?? "";
-    final line = fields["lineNumber"] ?? log.id.toString();
 
-    return GestureDetector(
-      onSecondaryTapUp: (details) {
-        _showContextMenu(context, details.globalPosition);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: Theme.of(context).dividerColor.withOpacity(0.5),
-            ),
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (provider.showLineNumbers)
-              SizedBox(
-                width: 50,
-                child: Text(
-                  line,
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+    return FutureBuilder<LogRenderEngine>(
+      future: LogRenderEngine.shared,
+      builder: (context, snapshot) {
+        final engine = snapshot.data ?? LogRenderEngine.fallback;
+        return GestureDetector(
+          onSecondaryTapUp: (details) {
+            _showContextMenu(context, details.globalPosition);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: Theme.of(context).dividerColor.withOpacity(0.5),
                 ),
               ),
-            SizedBox(
-              width: 180,
-              child: Text(
-                time,
-                style: const TextStyle(color: Colors.blueAccent, fontSize: 12),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: engine.buildCells(
+                context,
+                log,
+                provider.showLineNumbers,
               ),
             ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                  Text(
-                    fields.entries
-                        .where(
-                          (e) => ![
-                            "eventTime",
-                            "eventName",
-                            "lineNumber",
-                          ].contains(e.key),
-                        )
-                        .map((e) => "${e.key}:${e.value}")
-                        .join(" | "),
-                    style: const TextStyle(color: Colors.grey, fontSize: 11),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

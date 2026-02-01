@@ -24,11 +24,29 @@ sourceNodeId = "$line.Event.SourcenodeId"
 targetNodeId = "$line.Event.TargetnodeId"
 
 [[col]]
-with = 120
-expr = "local_time($0.Event.paltformUtcTime)"
+width = 120
+expr = "time($eventTime)"
+style = "meta"
 
 [[col]]
-expr = "$cur.Event.telemetryEventName"
+width = 120
+expr = "$eventName"
+style = "text"
 
 [[col]]
-expr = "$cur.Event.telemetryEventName"
+flex = 1
+[[col.row]]
+expr = "$sourceNodeId"
+style = "tag"
+[[col.row]]
+expr = "$sourceNodeId"
+style = "text"
+
+[[col]]
+flex = 1
+[[col.row]]
+expr = "$targetNodeId"
+style = "tag"
+[[col.row]]
+expr = "$targetNodeId"
+style = "text"
