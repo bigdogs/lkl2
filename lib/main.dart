@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:macos_ui/macos_ui.dart';
@@ -8,9 +10,22 @@ import 'package:lkl2/ui/pages/home_page.dart';
 
 Future<void> main() async {
   await RustLib.init(
-    externalLibrary: ExternalLibrary.process(iKnowHowToUseIt: true),
+    externalLibrary: ExternalLibrary.open(_defaultDylibFileName()),
   );
   runApp(const Lkl2());
+}
+
+String _defaultDylibFileName() {
+  if (Platform.isWindows) {
+    return 'liblkl2.dll';
+  }
+  if (Platform.isMacOS) {
+    return 'libliblkl2.dylib';
+  }
+  if (Platform.isLinux) {
+    return 'libliblkl2.so';
+  }
+  return 'liblkl2';
 }
 
 class Lkl2 extends StatelessWidget {

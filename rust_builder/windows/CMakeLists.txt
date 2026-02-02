@@ -10,11 +10,13 @@ project(${PROJECT_NAME} LANGUAGES CXX)
 
 include("../cargokit/cmake/cargokit.cmake")
 
-# For this local project, we know the rust directory is at the project root, 
-# which is one level up from the windows directory (CMAKE_SOURCE_DIR).
+# For this local project, we know the rust directory is at the project root.
+# In a Flutter Windows build, CMAKE_SOURCE_DIR points to <project_root>/windows,
+# so we go one level up to reach <project_root>/rust/liblkl2.
 set(RUST_MANIFEST_DIR "${CMAKE_SOURCE_DIR}/../rust/liblkl2")
+get_filename_component(RUST_MANIFEST_DIR "${RUST_MANIFEST_DIR}" REALPATH)
 
-apply_cargokit(${PROJECT_NAME} "${RUST_MANIFEST_DIR}" rust_lib_lkl2 "")
+apply_cargokit(${PROJECT_NAME} "${RUST_MANIFEST_DIR}" liblkl2 "")
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an
