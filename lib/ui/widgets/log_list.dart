@@ -18,7 +18,7 @@ class LogList extends StatelessWidget {
         itemCount: logs.length,
         itemBuilder: (context, index) {
           final log = logs[index];
-          return LogItem(log: log);
+          return LogItem(log: log, index: index);
         },
       ),
     );

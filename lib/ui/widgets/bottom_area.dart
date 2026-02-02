@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:macos_ui/macos_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:lkl2/log_provider.dart';
 import 'package:lkl2/ui/widgets/log_list.dart';
@@ -63,7 +64,7 @@ class _BottomAreaState extends State<BottomArea> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<LogProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = MacosTheme.of(context);
 
     return Column(
       children: [
@@ -71,10 +72,8 @@ class _BottomAreaState extends State<BottomArea> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(color: Theme.of(context).dividerColor),
-            ),
-            color: colorScheme.surface,
+            border: Border(top: BorderSide(color: MacosColors.separatorColor)),
+            color: theme.canvasColor,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,106 +81,69 @@ class _BottomAreaState extends State<BottomArea> {
             children: [
               // Combined Filter & Search Row
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // Field Selector
                   SizedBox(
                     width: 140,
                     child: _isLoadingFields
-                        ? const Center(
-                            child: SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          )
-                        : DropdownButtonFormField<String>(
+                        ? const Center(child: ProgressCircle())
+                        : MacosPopupButton<String>(
                             value: _selectedField,
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Field',
-                              isDense: true,
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 8,
-                              ),
-                            ),
-                            items: _fields
-                                .map(
-                                  (f) => DropdownMenuItem(
-                                    value: f,
-                                    child: Text(
-                                      f,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 13),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (v) =>
-                                setState(() => _selectedField = v!),
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                _selectedField = newValue;
+                              });
+                            },
+                            items: _fields.map<MacosPopupMenuItem<String>>((
+                              String value,
+                            ) {
+                              return MacosPopupMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              );
+                            }).toList(),
                           ),
                   ),
                   const SizedBox(width: 8),
                   // Mode Selector
                   SizedBox(
                     width: 120,
-                    child: DropdownButtonFormField<FilterMode>(
+                    child: MacosPopupButton<FilterMode>(
                       value: _selectedMode,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Mode',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 8,
-                        ),
-                      ),
+                      onChanged: (FilterMode? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedMode = newValue;
+                          });
+                        }
+                      },
                       items: FilterMode.values
-                          .map(
-                            (m) => DropdownMenuItem(
-                              value: m,
-                              child: Text(
-                                m.label,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                            ),
-                          )
+                          .map<MacosPopupMenuItem<FilterMode>>((
+                            FilterMode value,
+                          ) {
+                            return MacosPopupMenuItem<FilterMode>(
+                              value: value,
+                              child: Text(value.label),
+                            );
+                          })
                           .toList(),
-                      onChanged: (v) => setState(() => _selectedMode = v!),
                     ),
                   ),
                   const SizedBox(width: 8),
                   // Value Input
                   Expanded(
                     flex: 2,
-                    child: TextField(
+                    child: MacosTextField(
                       controller: _valueController,
-                      decoration: const InputDecoration(
-                        labelText: 'Value',
-                        hintText: 'Filter value...',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 8,
-                        ),
-                      ),
+                      placeholder: 'Value',
                       onSubmitted: (_) => _addFilter(provider),
                     ),
                   ),
                   const SizedBox(width: 4),
-                  IconButton.filledTonal(
+                  MacosIconButton(
+                    icon: const MacosIcon(CupertinoIcons.add_circled),
                     onPressed: () => _addFilter(provider),
-                    icon: const Icon(Icons.add, size: 20),
-                    tooltip: "Add Filter Condition",
-                    constraints: const BoxConstraints(
-                      minWidth: 36,
-                      minHeight: 36,
-                    ),
-                    padding: EdgeInsets.zero,
                   ),
 
                   // Divider
@@ -189,61 +151,41 @@ class _BottomAreaState extends State<BottomArea> {
                   Container(
                     width: 1,
                     height: 24,
-                    color: Theme.of(context).dividerColor,
+                    color: MacosColors.separatorColor,
                   ),
                   const SizedBox(width: 12),
 
                   // Search Input
                   Expanded(
                     flex: 3,
-                    child: TextField(
+                    child: MacosSearchField(
                       controller: _searchController,
-                      decoration: const InputDecoration(
-                        hintText: "Search logs (Full Text)...",
-                        prefixIcon: Icon(Icons.search, size: 18),
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 8,
-                        ),
-                      ),
-                      onSubmitted: (value) => provider.search(value),
+                      placeholder: 'Search logs (Full Text)...',
+                      onChanged: (value) => provider.search(value),
                     ),
                   ),
                   const SizedBox(width: 8),
 
                   // Actions
-                  IconButton.outlined(
+                  MacosIconButton(
+                    icon: const MacosIcon(CupertinoIcons.refresh),
                     onPressed: () {
                       provider.clearFilters();
                       _searchController.clear();
                       provider.search("");
                     },
-                    icon: const Icon(Icons.refresh, size: 18),
-                    tooltip: "Reset",
-                    constraints: const BoxConstraints(
-                      minWidth: 36,
-                      minHeight: 36,
-                    ),
-                    padding: EdgeInsets.zero,
                   ),
                   const SizedBox(width: 4),
-                  IconButton.filled(
+                  PushButton(
+                    controlSize: ControlSize.small,
                     onPressed: () {
                       provider.applyFilters();
-                      // Also apply current search text if changed but not submitted
-                      if (_searchController.text != provider.lastSearchQuery) {
-                        provider.search(_searchController.text);
-                      }
+                      provider.search(_searchController.text);
                     },
-                    icon: const Icon(Icons.filter_list, size: 18),
-                    tooltip: "Filter",
-                    constraints: const BoxConstraints(
-                      minWidth: 36,
-                      minHeight: 36,
+                    child: const MacosIcon(
+                      CupertinoIcons.slider_horizontal_3,
+                      size: 18,
                     ),
-                    padding: EdgeInsets.zero,
                   ),
                 ],
               ),
@@ -256,18 +198,34 @@ class _BottomAreaState extends State<BottomArea> {
                     spacing: 8,
                     runSpacing: 4,
                     children: provider.filters.map((filter) {
-                      return InputChip(
-                        label: Text(
-                          "${filter.field} ${filter.mode == FilterMode.equals ? '=' : 'contains'} '${filter.value}'",
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
                         ),
-                        onDeleted: () => provider.removeFilter(filter),
-                        deleteIcon: const Icon(Icons.close, size: 16),
-                        backgroundColor: colorScheme.secondaryContainer,
-                        labelStyle: TextStyle(
-                          color: colorScheme.onSecondaryContainer,
-                          fontSize: 12,
+                        decoration: BoxDecoration(
+                          color: MacosColors.alternatingContentBackgroundColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: MacosColors.separatorColor),
                         ),
-                        visualDensity: VisualDensity.compact,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              "${filter.field} ${filter.mode == FilterMode.equals ? '=' : 'contains'} '${filter.value}'",
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () => provider.removeFilter(filter),
+                              child: const MacosIcon(
+                                CupertinoIcons.clear_circled_solid,
+                                size: 16,
+                                color: MacosColors.systemGrayColor,
+                              ),
+                            ),
+                          ],
+                        ),
                       );
                     }).toList(),
                   ),
@@ -281,29 +239,30 @@ class _BottomAreaState extends State<BottomArea> {
           Container(
             padding: const EdgeInsets.all(8),
             width: double.infinity,
-            color: colorScheme.errorContainer,
+            color: MacosColors.systemRedColor.withValues(alpha: 0.1),
             child: Text(
               "Error: ${provider.searchError}",
-              style: TextStyle(color: colorScheme.onErrorContainer),
+              style: const TextStyle(color: MacosColors.systemRedColor),
             ),
           ),
 
         // Results List
         Expanded(
           child: provider.isSearching
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: ProgressCircle())
               : LogList(logs: provider.searchResults),
         ),
 
         // Footer Status
         if (provider.searchResults.isEmpty &&
-            !provider.isSearching &&
-            provider.searchError == null)
-          Container(
-            padding: const EdgeInsets.all(4),
-            width: double.infinity,
-            color: colorScheme.surfaceContainer,
-            child: const Text("0 match found", style: TextStyle(fontSize: 12)),
+            (provider.filters.isNotEmpty ||
+                provider.lastSearchQuery.isNotEmpty))
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              "No logs found matching criteria",
+              style: TextStyle(color: theme.typography.body.color),
+            ),
           ),
       ],
     );

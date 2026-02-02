@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:macos_ui/macos_ui.dart';
 import 'package:lkl2/src/rust/file.dart';
 
 class LogRenderEngine {
@@ -98,19 +99,22 @@ class LogRenderEngine {
     TextOverflow? overflow,
   ) {
     final token = styleToken.toLowerCase();
-    final base = Theme.of(context).textTheme.bodySmall ?? const TextStyle();
+    final base = MacosTheme.of(context).typography.body.copyWith(fontSize: 12);
 
     switch (token) {
       case 'tag':
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: Colors.grey.withValues(alpha: 0.2),
+            color: MacosColors.systemGrayColor.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
             text,
-            style: base.copyWith(color: Colors.grey[700], fontSize: 11),
+            style: base.copyWith(
+              color: MacosColors.labelColor.resolveFrom(context),
+              fontSize: 11,
+            ),
             maxLines: maxLines,
             overflow: overflow,
           ),
@@ -119,13 +123,13 @@ class LogRenderEngine {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primaryContainer,
+            color: MacosColors.systemBlueColor.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
             text,
             style: base.copyWith(
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
+              color: MacosColors.systemBlueColor,
               fontSize: 11,
             ),
             maxLines: maxLines,
@@ -135,7 +139,10 @@ class LogRenderEngine {
       case 'meta':
         return Text(
           text,
-          style: base.copyWith(color: Colors.grey, fontSize: 11),
+          style: base.copyWith(
+            color: MacosColors.secondaryLabelColor.resolveFrom(context),
+            fontSize: 11,
+          ),
           maxLines: maxLines,
           overflow: overflow,
         );
@@ -291,98 +298,59 @@ LogRenderConfig _parseConfig(String content) {
 
     if (currentSection == 'logs') {
       fields.add(key);
-    } else if (currentSection == 'col' || currentSection == 'col.row') {
-      if (currentRow != null) {
-        currentRow!.apply(key, value);
-      } else if (currentCol != null) {
-        currentCol!.apply(key, value);
+    } else if (currentSection == 'col') {
+      if (key == 'width') {
+        currentCol?.width = double.tryParse(value);
+      } else if (key == 'flex') {
+        currentCol?.flex = int.tryParse(value);
+      }
+    } else if (currentSection == 'col.row') {
+      if (key == 'expr') {
+        currentRow?.expr = value;
+      } else if (key == 'style') {
+        currentRow?.style = value;
+      } else if (key == 'max_lines') {
+        currentRow?.maxLines = int.tryParse(value);
+      } else if (key == 'ellipsis') {
+        currentRow?.ellipsis = value.toLowerCase() == 'true';
       }
     }
   }
 
   flushCol();
 
-  return LogRenderConfig(
-    columns.map((c) => c.build()).where((c) => c.rows.isNotEmpty).toList(),
-    fields: fields,
-  );
+  final builtColumns = columns.map((cb) {
+    final rows = cb.rows.map((rb) {
+      return LogCell(
+        expr: rb.expr ?? '',
+        style: rb.style,
+        maxLines: rb.maxLines,
+        ellipsis: rb.ellipsis,
+      );
+    }).toList();
+    return LogColumn(rows: rows, width: cb.width, flex: cb.flex);
+  }).toList();
+
+  return LogRenderConfig(builtColumns, fields: fields);
+}
+
+String _stripQuotes(String s) {
+  if ((s.startsWith('"') && s.endsWith('"')) ||
+      (s.startsWith("'") && s.endsWith("'"))) {
+    return s.substring(1, s.length - 1);
+  }
+  return s;
 }
 
 class _ColumnBuilder {
   double? width;
   int? flex;
-  String expr = '';
-  String style = '';
-  final List<_RowBuilder> rows = [];
-
-  void apply(String key, String value) {
-    switch (key) {
-      case 'width':
-        width = double.tryParse(value);
-        break;
-      case 'flex':
-        flex = int.tryParse(value);
-        break;
-      case 'expr':
-        expr = value;
-        break;
-      case 'style':
-        style = value;
-        break;
-    }
-  }
-
-  LogColumn build() {
-    final builtRows = rows.isNotEmpty
-        ? rows.map((r) => r.build()).toList()
-        : [LogCell(expr: expr, style: style.isEmpty ? null : style)];
-    final filtered = builtRows.where((r) => r.expr.trim().isNotEmpty).toList();
-    return LogColumn(width: width, flex: flex, rows: filtered);
-  }
+  final rows = <_RowBuilder>[];
 }
 
 class _RowBuilder {
-  String expr = '';
-  String style = '';
+  String? expr;
+  String? style;
   int? maxLines;
   bool? ellipsis;
-
-  void apply(String key, String value) {
-    switch (key) {
-      case 'expr':
-        expr = value;
-        break;
-      case 'style':
-        style = value;
-        break;
-      case 'lines':
-      case 'maxLines':
-        maxLines = int.tryParse(value);
-        break;
-      case 'ellipsis':
-        ellipsis = value.toLowerCase() == 'true';
-        break;
-    }
-  }
-
-  LogCell build() {
-    return LogCell(
-      expr: expr,
-      style: style.isEmpty ? null : style,
-      maxLines: maxLines,
-      ellipsis: ellipsis,
-    );
-  }
-}
-
-String _stripQuotes(String value) {
-  final trimmed = value.trim();
-  if (trimmed.length >= 2) {
-    final first = trimmed[0];
-    final last = trimmed[trimmed.length - 1];
-    if ((first == '"' && last == '"') || (first == "'" && last == "'")) {
-      return trimmed.substring(1, trimmed.length - 1);
-    }
-  }
-  return trimmed;
 }

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:macos_ui/macos_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:lkl2/log_provider.dart';
 import 'package:lkl2/src/rust/file.dart';
@@ -8,8 +9,9 @@ import 'package:lkl2/ui/widgets/log_render_engine.dart';
 
 class LogItem extends StatelessWidget {
   final Log log;
+  final int index;
 
-  const LogItem({super.key, required this.log});
+  const LogItem({super.key, required this.log, required this.index});
 
   @override
   Widget build(BuildContext context) {
@@ -19,19 +21,18 @@ class LogItem extends StatelessWidget {
       future: LogRenderEngine.shared,
       builder: (context, snapshot) {
         final engine = snapshot.data ?? LogRenderEngine.fallback;
+        // Alternating background color
+        final backgroundColor = index.isEven
+            ? MacosColors.selectedMenuItemTextColor
+            : MacosTheme.of(context).canvasColor;
+
         return GestureDetector(
           onSecondaryTapUp: (details) {
             _showContextMenu(context, details.globalPosition);
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: Theme.of(context).dividerColor.withOpacity(0.5),
-                ),
-              ),
-            ),
+            decoration: BoxDecoration(color: backgroundColor),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: engine.buildCells(
