@@ -25,11 +25,13 @@ targetNodeId = "$line.Event.TargetnodeId"
 
 [[col]]
 width = 120
+[[col.row]]
 expr = "time($eventTime)"
 style = "meta"
 
 [[col]]
-width = 120
+width = 140
+[[col.row]]
 expr = "$eventName"
 style = "text"
 

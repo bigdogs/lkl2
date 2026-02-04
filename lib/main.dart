@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:lkl2/src/rust/frb_generated.dart';
@@ -38,7 +38,6 @@ class Lkl2 extends StatelessWidget {
       child: MacosApp(
         theme: MacosThemeData.light(),
         darkTheme: MacosThemeData.dark(),
-        themeMode: ThemeMode.system,
         home: const HomePage(),
       ),
     );

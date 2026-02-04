@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:lkl2/ui/widgets/main_log_area.dart';
 import 'package:lkl2/ui/widgets/bottom_area.dart';

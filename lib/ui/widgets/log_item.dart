@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:provider/provider.dart';
@@ -48,23 +48,16 @@ class LogItem extends StatelessWidget {
   }
 
   void _showContextMenu(BuildContext context, Offset position) {
-    final RenderBox overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
 
-    showMenu(
-      context: context,
-      position: RelativeRect.fromRect(
-        position & const Size(1, 1),
-        Offset.zero & overlay.size,
-      ),
-      items: [
-        const PopupMenuItem(value: 'detail', child: Text('详细日志')),
-        const PopupMenuItem(value: 'copy_line', child: Text('复制一行')),
-        const PopupMenuItem(value: 'copy_json', child: Text('复制JSON')),
-      ],
-    ).then((value) {
+    void close() {
+      entry.remove();
+    }
+
+    void onSelected(String value) {
+      close();
       if (!context.mounted) return;
-
       if (value == 'detail') {
         _showDetail(context, log.id);
       } else if (value == 'copy_line') {
@@ -72,7 +65,29 @@ class LogItem extends StatelessWidget {
       } else if (value == 'copy_json') {
         _copyJson();
       }
-    });
+    }
+
+    entry = OverlayEntry(
+      builder: (context) {
+        return Positioned.fill(
+          child: Stack(
+            children: [
+              GestureDetector(
+                onTap: close,
+                behavior: HitTestBehavior.translucent,
+              ),
+              Positioned(
+                left: position.dx,
+                top: position.dy,
+                child: _LogContextMenu(onSelected: onSelected),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    overlay.insert(entry);
   }
 
   void _copyLine() {
@@ -100,21 +115,118 @@ class LogItem extends StatelessWidget {
     final content = await provider.getDetail(id);
 
     if (context.mounted) {
-      showDialog(
+      showMacosAlertDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: Text("Log Detail #$id"),
-          content: SingleChildScrollView(
-            child: SelectableText(content ?? "No content"),
+        builder: (context) => MacosAlertDialog(
+          appIcon: const MacosIcon(
+            CupertinoIcons.info_circle,
+            size: 32,
+            color: MacosColors.systemBlueColor,
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Close"),
-            ),
-          ],
+          title: Text("Log Detail #$id"),
+          message: SingleChildScrollView(child: Text(content ?? "No content")),
+          primaryButton: PushButton(
+            controlSize: ControlSize.large,
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Close"),
+          ),
         ),
       );
     }
+  }
+}
+
+class _LogContextMenu extends StatelessWidget {
+  final ValueChanged<String> onSelected;
+
+  const _LogContextMenu({required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = MacosTheme.of(context);
+    const items = [
+      _ContextMenuItemData(value: 'detail', label: '详细日志'),
+      _ContextMenuItemData(value: 'copy_line', label: '复制一行'),
+      _ContextMenuItemData(value: 'copy_json', label: '复制JSON'),
+    ];
+
+    return Container(
+      constraints: const BoxConstraints(minWidth: 160),
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.canvasColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: MacosColors.separatorColor),
+        boxShadow: const [
+          BoxShadow(
+            color: MacosColors.systemGrayColor,
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: items
+            .map(
+              (item) => _ContextMenuItemRow(item: item, onSelected: onSelected),
+            )
+            .toList(),
+      ),
+    );
+  }
+}
+
+class _ContextMenuItemData {
+  final String value;
+  final String label;
+
+  const _ContextMenuItemData({required this.value, required this.label});
+}
+
+class _ContextMenuItemRow extends StatefulWidget {
+  final _ContextMenuItemData item;
+  final ValueChanged<String> onSelected;
+
+  const _ContextMenuItemRow({required this.item, required this.onSelected});
+
+  @override
+  State<_ContextMenuItemRow> createState() => _ContextMenuItemRowState();
+}
+
+class _ContextMenuItemRowState extends State<_ContextMenuItemRow> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = MacosTheme.of(context);
+    return MouseRegion(
+      onEnter: (_) {
+        setState(() {
+          _isHovered = true;
+        });
+      },
+      onExit: (_) {
+        setState(() {
+          _isHovered = false;
+        });
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => widget.onSelected(widget.item.value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          color: _isHovered
+              ? MacosColors.systemBlueColor.withValues(alpha: 0.18)
+              : MacosColors.transparent,
+          child: Text(
+            widget.item.label,
+            style: theme.typography.body.copyWith(
+              color: MacosColors.labelColor.resolveFrom(context),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

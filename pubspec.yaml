@@ -31,7 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # cupertino_icons: ^1.0.8
+  cupertino_icons: ^1.0.8
   rust_lib_lkl2:
     path: rust_builder
   flutter_rust_bridge: 2.11.1
@@ -56,7 +56,7 @@ flutter:
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
-  uses-material-design: true
+  uses-material-design: false
 
   assets:
     - rust/libparser/rules/lkl2.toml

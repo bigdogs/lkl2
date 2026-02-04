@@ -51,16 +51,12 @@ class MacosMenuBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = MacosTheme.of(context);
     return Container(
+      width: double.infinity,
       height: height,
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: theme.canvasColor,
-        border: const Border(
-          bottom: BorderSide(color: MacosColors.separatorColor),
-        ),
-      ),
+      decoration: BoxDecoration(color: theme.canvasColor),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.max,
         children: menus
             .map(
               (group) => _MacosMenuGroup(

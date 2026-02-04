@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:lkl2/src/rust/file.dart';
 import 'package:lkl2/ui/widgets/log_item.dart';
 
@@ -13,14 +13,12 @@ class LogList extends StatelessWidget {
       return const Center(child: Text("No logs"));
     }
 
-    return SelectionArea(
-      child: ListView.builder(
-        itemCount: logs.length,
-        itemBuilder: (context, index) {
-          final log = logs[index];
-          return LogItem(log: log, index: index);
-        },
-      ),
+    return ListView.builder(
+      itemCount: logs.length,
+      itemBuilder: (context, index) {
+        final log = logs[index];
+        return LogItem(log: log, index: index);
+      },
     );
   }
 }

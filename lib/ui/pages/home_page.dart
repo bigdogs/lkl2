@@ -118,11 +118,15 @@ class _HomePageState extends State<HomePage> {
                       _isDragging = false;
                     });
                   },
-                  child: Column(
-                    children: [
-                      AppMenuBuilder.buildMenuBar(menus),
-                      Expanded(child: _buildBody(context, provider)),
-                    ],
+                  child: Container(
+                    color: MacosTheme.of(context).canvasColor,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        AppMenuBuilder.buildMenuBar(menus),
+                        Expanded(child: _buildBody(context, provider)),
+                      ],
+                    ),
                   ),
                 );
               },
