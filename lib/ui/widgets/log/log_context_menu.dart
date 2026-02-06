@@ -3,16 +3,26 @@ import 'package:macos_ui/macos_ui.dart';
 
 class LogContextMenu extends StatelessWidget {
   final ValueChanged<String> onSelected;
+  final bool hasSelection;
 
-  const LogContextMenu({super.key, required this.onSelected});
+  const LogContextMenu({
+    super.key,
+    required this.onSelected,
+    this.hasSelection = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = MacosTheme.of(context);
-    const items = [
-      _ContextMenuItemData(value: 'detail', label: '详细日志'),
-      _ContextMenuItemData(value: 'copy_line', label: '复制一行'),
-      _ContextMenuItemData(value: 'copy_json', label: '复制JSON'),
+    final items = [
+      _ContextMenuItemData(
+        value: 'copy_selection',
+        label: '复制',
+        enabled: hasSelection,
+      ),
+      const _ContextMenuItemData(value: 'detail', label: '详细日志'),
+      const _ContextMenuItemData(value: 'copy_line', label: '复制一行'),
+      const _ContextMenuItemData(value: 'copy_json', label: '复制JSON'),
     ];
 
     return IntrinsicWidth(
@@ -51,8 +61,13 @@ class LogContextMenu extends StatelessWidget {
 class _ContextMenuItemData {
   final String value;
   final String label;
+  final bool enabled;
 
-  const _ContextMenuItemData({required this.value, required this.label});
+  const _ContextMenuItemData({
+    required this.value,
+    required this.label,
+    this.enabled = true,
+  });
 }
 
 class _ContextMenuItemRow extends StatefulWidget {
@@ -71,27 +86,36 @@ class _ContextMenuItemRowState extends State<_ContextMenuItemRow> {
   @override
   Widget build(BuildContext context) {
     final theme = MacosTheme.of(context);
-    final backgroundColor = _isHovered
+    final isDisabled = !widget.item.enabled;
+
+    final backgroundColor = _isHovered && !isDisabled
         ? MacosColors.systemBlueColor
         : MacosColors.transparent;
-    final textColor = _isHovered
-        ? MacosColors.white
-        : MacosColors.labelColor.resolveFrom(context);
+
+    final textColor = isDisabled
+        ? MacosColors.disabledControlTextColor
+        : (_isHovered
+              ? MacosColors.white
+              : MacosColors.labelColor.resolveFrom(context));
 
     return MouseRegion(
       onEnter: (_) {
-        setState(() {
-          _isHovered = true;
-        });
+        if (!isDisabled) {
+          setState(() {
+            _isHovered = true;
+          });
+        }
       },
       onExit: (_) {
-        setState(() {
-          _isHovered = false;
-        });
+        if (!isDisabled) {
+          setState(() {
+            _isHovered = false;
+          });
+        }
       },
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () => widget.onSelected(widget.item.value),
+        onTap: isDisabled ? null : () => widget.onSelected(widget.item.value),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(

@@ -79,7 +79,10 @@ class _HomePageState extends State<HomePage> {
             children: [
               ContentArea(
                 builder: (context, _) {
-                  return FileDropZone(child: _buildBody(context, provider));
+                  return Container(
+                    color: MacosTheme.of(context).canvasColor,
+                    child: FileDropZone(child: _buildBody(context, provider)),
+                  );
                 },
               ),
             ],

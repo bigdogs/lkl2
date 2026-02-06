@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:lkl2/log_provider.dart';
 import 'package:lkl2/ui/widgets/log_list.dart';
 import 'package:lkl2/ui/widgets/log_render_engine.dart';
+import 'package:lkl2/ui/widgets/active_filters_bar.dart';
 
 class BottomArea extends StatefulWidget {
   const BottomArea({super.key});
@@ -72,8 +73,7 @@ class _BottomAreaState extends State<BottomArea> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: MacosColors.separatorColor)),
-            color: theme.canvasColor,
+            color: MacosColors.systemBlueColor.withValues(alpha: 0.03),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,8 +172,19 @@ class _BottomAreaState extends State<BottomArea> {
                   // Actions
                   MacosIconButton(
                     icon: const MacosIcon(
-                      CupertinoIcons.arrow_2_circlepath,
+                      CupertinoIcons.refresh,
                       color: MacosColors.systemBlueColor,
+                    ),
+                    onPressed: () {
+                      provider.applyFilters();
+                      provider.search(_searchController.text);
+                    },
+                  ),
+                  const SizedBox(width: 4),
+                  MacosIconButton(
+                    icon: const MacosIcon(
+                      CupertinoIcons.delete,
+                      color: MacosColors.systemRedColor,
                     ),
                     onPressed: () {
                       provider.clearFilters();
@@ -181,62 +192,11 @@ class _BottomAreaState extends State<BottomArea> {
                       provider.search("");
                     },
                   ),
-                  const SizedBox(width: 4),
-                  PushButton(
-                    controlSize: ControlSize.small,
-                    onPressed: () {
-                      provider.applyFilters();
-                      provider.search(_searchController.text);
-                    },
-                    child: const MacosIcon(
-                      CupertinoIcons.line_horizontal_3_decrease,
-                      size: 18,
-                      color: MacosColors.systemBlueColor,
-                    ),
-                  ),
                 ],
               ),
 
               // Row 2: Active Filters (Chips)
-              if (provider.filters.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: provider.filters.map((filter) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: MacosColors.alternatingContentBackgroundColor,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: MacosColors.separatorColor),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              "${filter.field} ${filter.mode == FilterMode.equals ? '=' : 'contains'} '${filter.value}'",
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            const SizedBox(width: 4),
-                            GestureDetector(
-                              onTap: () => provider.removeFilter(filter),
-                              child: const MacosIcon(
-                                CupertinoIcons.xmark_circle_fill,
-                                size: 16,
-                                color: MacosColors.systemBlueColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
+              const ActiveFiltersBar(),
             ],
           ),
         ),
@@ -254,11 +214,14 @@ class _BottomAreaState extends State<BottomArea> {
           ),
 
         // Results List
-        Expanded(
-          child: provider.isSearching
-              ? const Center(child: ProgressCircle())
-              : LogList(logs: provider.searchResults),
-        ),
+        if (provider.filters.isNotEmpty || provider.lastSearchQuery.isNotEmpty)
+          Expanded(
+            child: provider.isSearching
+                ? const Center(child: ProgressCircle())
+                : LogList(logs: provider.searchResults),
+          )
+        else
+          const Spacer(),
 
         // Footer Status
         if (provider.searchResults.isEmpty &&

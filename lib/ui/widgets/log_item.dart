@@ -54,6 +54,11 @@ class LogItem extends StatelessWidget {
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
 
+    // Check for selection
+    final hasSelection = context.read<LogProvider>().hasSelection;
+    final selectableRegion = context
+        .findAncestorStateOfType<SelectableRegionState>();
+
     void close() {
       entry.remove();
     }
@@ -67,6 +72,8 @@ class LogItem extends StatelessWidget {
         _copyLine();
       } else if (value == 'copy_json') {
         _copyJson();
+      } else if (value == 'copy_selection') {
+        selectableRegion?.copySelection(SelectionChangedCause.toolbar);
       }
     }
 
@@ -82,7 +89,10 @@ class LogItem extends StatelessWidget {
               Positioned(
                 left: position.dx,
                 top: position.dy,
-                child: LogContextMenu(onSelected: onSelected),
+                child: LogContextMenu(
+                  onSelected: onSelected,
+                  hasSelection: hasSelection,
+                ),
               ),
             ],
           ),

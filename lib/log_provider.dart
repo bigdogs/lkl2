@@ -69,6 +69,7 @@ class LogProvider extends ChangeNotifier {
   // UI State
   bool _showLineNumbers = true;
   String? _currentFilePath;
+  bool _hasSelection = false;
 
   Timer? _statusTimer;
 
@@ -80,6 +81,7 @@ class LogProvider extends ChangeNotifier {
   String? get searchError => _searchError;
   bool get showLineNumbers => _showLineNumbers;
   String? get currentFilePath => _currentFilePath;
+  bool get hasSelection => _hasSelection;
 
   @override
   void dispose() {
@@ -183,6 +185,13 @@ class LogProvider extends ChangeNotifier {
     // Legacy/Manual SQL support
     _filterSql = filter;
     await search(_lastSearchQuery);
+  }
+
+  void setSelection(bool value) {
+    if (_hasSelection != value) {
+      _hasSelection = value;
+      notifyListeners();
+    }
   }
 
   void toggleLineNumbers() {
