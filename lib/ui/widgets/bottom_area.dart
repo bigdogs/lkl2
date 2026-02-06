@@ -5,6 +5,7 @@ import 'package:lkl2/log_provider.dart';
 import 'package:lkl2/ui/widgets/log_list.dart';
 import 'package:lkl2/ui/widgets/log_render_engine.dart';
 import 'package:lkl2/ui/widgets/active_filters_bar.dart';
+import 'package:lkl2/ui/widgets/bottom_status_bar.dart';
 
 class BottomArea extends StatefulWidget {
   const BottomArea({super.key});
@@ -163,7 +164,8 @@ class _BottomAreaState extends State<BottomArea> {
                     flex: 3,
                     child: MacosSearchField(
                       controller: _searchController,
-                      placeholder: 'Search logs (Full Text)...',
+                      placeholder: 'Search logs...',
+                      maxLines: 1,
                       onChanged: (value) => provider.search(value),
                     ),
                   ),
@@ -183,13 +185,12 @@ class _BottomAreaState extends State<BottomArea> {
                   const SizedBox(width: 4),
                   MacosIconButton(
                     icon: const MacosIcon(
-                      CupertinoIcons.delete,
+                      CupertinoIcons.clear_circled,
                       color: MacosColors.systemRedColor,
                     ),
                     onPressed: () {
-                      provider.clearFilters();
                       _searchController.clear();
-                      provider.search("");
+                      provider.resetAll();
                     },
                   ),
                 ],
@@ -224,16 +225,7 @@ class _BottomAreaState extends State<BottomArea> {
           const Spacer(),
 
         // Footer Status
-        if (provider.searchResults.isEmpty &&
-            (provider.filters.isNotEmpty ||
-                provider.lastSearchQuery.isNotEmpty))
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              "No logs found matching criteria",
-              style: TextStyle(color: theme.typography.body.color),
-            ),
-          ),
+        const BottomStatusBar(),
       ],
     );
   }

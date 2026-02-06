@@ -170,6 +170,18 @@ class LogProvider extends ChangeNotifier {
     search(_lastSearchQuery);
   }
 
+  /// Resets all search and filter state
+  void resetAll() {
+    _filters.clear();
+    _filterSql = "";
+    _lastSearchQuery = "";
+    _searchError = null;
+    _searchResults = [];
+    _isSearching = false;
+    _hasSelection = false;
+    notifyListeners();
+  }
+
   Future<void> applyFilters() async {
     if (_filters.isEmpty) {
       _filterSql = "";

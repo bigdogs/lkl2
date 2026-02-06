@@ -14,7 +14,9 @@ import 'package:lkl2/ui/pages/home_page.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await RustLib.init(
-    externalLibrary: ExternalLibrary.open(_defaultDylibFileName()),
+    externalLibrary: Platform.isMacOS || Platform.isIOS
+        ? ExternalLibrary.process(iKnowHowToUseIt: true)
+        : ExternalLibrary.open(_defaultDylibFileName()),
   );
 
   await windowManager.ensureInitialized();

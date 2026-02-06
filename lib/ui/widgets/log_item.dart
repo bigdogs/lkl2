@@ -10,11 +10,52 @@ import 'package:lkl2/ui/widgets/log_render_engine.dart';
 import 'package:lkl2/ui/dialogs/log_detail_dialog.dart';
 import 'package:lkl2/ui/widgets/log/log_context_menu.dart';
 
-class LogItem extends StatelessWidget {
+class LogItem extends StatefulWidget {
   final Log log;
   final int index;
 
   const LogItem({super.key, required this.log, required this.index});
+
+  @override
+  State<LogItem> createState() => _LogItemState();
+}
+
+class _LogItemState extends State<LogItem> {
+  SelectableRegionState? _selectableRegion;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _selectableRegion = context
+        .findAncestorStateOfType<SelectableRegionState>();
+  }
+
+  @override
+  void dispose() {
+    // WORKAROUND: Clear selection when the item is scrolled out of view/disposed.
+    // This prevents SelectionArea from holding onto invalid geometries which causes crashes
+    // (Issue #126023).
+    // The user accepted this behavior: "If the selected area leaves the visible area, clear selection".
+    try {
+      if (_selectableRegion != null && _selectableRegion!.mounted) {
+        // We only clear if there is actually a selection to avoid unnecessary updates
+        // But we can't easily check if *this* item is selected.
+        // So we clear if there is ANY selection.
+        // This means scrolling will clear selection.
+
+        // Defer the clearSelection to the next frame to avoid "setState() or markNeedsBuild() called during build"
+        // This happens because dispose() is called during the build phase of the parent/ancestor.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_selectableRegion != null && _selectableRegion!.mounted) {
+            _selectableRegion!.clearSelection();
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("Error clearing selection on dispose: $e");
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,11 +66,15 @@ class LogItem extends StatelessWidget {
       builder: (context, snapshot) {
         final engine = snapshot.data ?? LogRenderEngine.fallback;
         // Alternating background color
-        final backgroundColor = index.isEven
+        final backgroundColor = widget.index.isEven
             ? MacosColors.selectedMenuItemTextColor
             : MacosTheme.of(context).canvasColor;
 
         return GestureDetector(
+          onSecondaryTapDown: (details) {
+            // Intercept secondary tap down to prevent SelectionArea from handling it.
+            // SelectionArea triggers _handleRightClickDown -> _selectWordAt which causes a crash.
+          },
           onSecondaryTapUp: (details) {
             _showContextMenu(context, details.globalPosition);
           },
@@ -40,7 +85,7 @@ class LogItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: engine.buildCells(
                 context,
-                log,
+                widget.log,
                 provider.showLineNumbers,
               ),
             ),
@@ -56,8 +101,6 @@ class LogItem extends StatelessWidget {
 
     // Check for selection
     final hasSelection = context.read<LogProvider>().hasSelection;
-    final selectableRegion = context
-        .findAncestorStateOfType<SelectableRegionState>();
 
     void close() {
       entry.remove();
@@ -67,13 +110,13 @@ class LogItem extends StatelessWidget {
       close();
       if (!context.mounted) return;
       if (value == 'detail') {
-        _showDetail(context, log.id);
+        _showDetail(context, widget.log.id);
       } else if (value == 'copy_line') {
         _copyLine();
       } else if (value == 'copy_json') {
         _copyJson();
       } else if (value == 'copy_selection') {
-        selectableRegion?.copySelection(SelectionChangedCause.toolbar);
+        _safeCopySelection(context);
       }
     }
 
@@ -103,11 +146,24 @@ class LogItem extends StatelessWidget {
     overlay.insert(entry);
   }
 
+  void _safeCopySelection(BuildContext context) {
+    try {
+      // Try to copy using the intent system safely
+      final result = Actions.maybeInvoke(context, CopySelectionTextIntent.copy);
+      if (result == null) {
+        debugPrint("Copy action not found or handled.");
+      }
+    } catch (e) {
+      debugPrint("Failed to copy selection: $e");
+      // If copy fails, suppress the crash as requested
+    }
+  }
+
   void _copyLine() {
-    final fields = log.fields;
+    final fields = widget.log.fields;
     final time = fields["eventTime"] ?? "";
     final name = fields["eventName"] ?? "";
-    final line = fields["lineNumber"] ?? log.id.toString();
+    final line = fields["lineNumber"] ?? widget.log.id.toString();
 
     final other = fields.entries
         .where((e) => !["eventTime", "eventName", "lineNumber"].contains(e.key))
@@ -119,7 +175,7 @@ class LogItem extends StatelessWidget {
   }
 
   void _copyJson() {
-    final json = jsonEncode(log.fields);
+    final json = jsonEncode(widget.log.fields);
     Clipboard.setData(ClipboardData(text: json));
   }
 
@@ -131,7 +187,7 @@ class LogItem extends StatelessWidget {
       showMacosAlertDialog(
         context: context,
         builder: (context) =>
-            LogDetailDialog(log: log, content: content ?? "No content"),
+            LogDetailDialog(log: widget.log, content: content ?? "No content"),
       );
     }
   }
