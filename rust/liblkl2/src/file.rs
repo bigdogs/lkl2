@@ -208,6 +208,46 @@ pub fn get_log_detail(id: u32) -> Result<Option<String>> {
     }
 }
 
+/// 1.5 dart查询某个字段的可能值 (用于自动补全)
+pub fn get_field_values(
+    field: String,
+    search: String,
+    limit: u32,
+    offset: u32,
+) -> Result<Vec<String>> {
+    let state = STATE.lock().unwrap();
+    if let Some(engine) = &state.engine {
+        // Basic validation: ensure field is not empty
+        if field.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // We quote the field name to handle special characters or reserved words
+        let quoted_field = format!("\"{}\"", field);
+        
+        let search_clause = if search.is_empty() {
+            "".to_string()
+        } else {
+            let sanitized = search.replace("'", "''");
+            format!("WHERE {} LIKE '%{}%'", quoted_field, sanitized)
+        };
+
+        let query = format!(
+            "SELECT DISTINCT {} FROM logs {} ORDER BY {} LIMIT {} OFFSET {}",
+            quoted_field, search_clause, quoted_field, limit, offset
+        );
+
+        let res = engine.execute_query(&query)?;
+        let values: Vec<String> = res.rows.iter()
+            .map(|row| row[0].clone())
+            .collect();
+        
+        Ok(values)
+    } else {
+        Ok(vec![])
+    }
+}
+
 pub fn get_render_config() -> Result<RenderConfig> {
     let config = Config::load()?;
     let fields = config.logs.keys().cloned().collect();

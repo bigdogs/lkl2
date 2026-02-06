@@ -252,4 +252,8 @@ class LogProvider extends ChangeNotifier {
   Future<String?> getDetail(int id) async {
     return await _repository.getLogDetail(id);
   }
+
+  Future<List<String>> getFieldValues(String field, String search, {int limit = 20, int offset = 0}) {
+    return _repository.getFieldValues(field: field, search: search, limit: limit, offset: offset);
+  }
 }

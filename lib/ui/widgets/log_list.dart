@@ -12,7 +12,7 @@ class LogList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (logs.isEmpty) {
-      return const Center(child: Text("No logs"));
+      return const Center();
     }
 
     return SelectionArea(

@@ -10,6 +10,12 @@ abstract class ILogRepository {
     required int offset,
   });
   Future<String?> getLogDetail(int id);
+  Future<List<String>> getFieldValues({
+    required String field,
+    required String search,
+    required int limit,
+    required int offset,
+  });
 }
 
 class LogRepository implements ILogRepository {
@@ -41,5 +47,20 @@ class LogRepository implements ILogRepository {
   @override
   Future<String?> getLogDetail(int id) {
     return rust_file.getLogDetail(id: id);
+  }
+
+  @override
+  Future<List<String>> getFieldValues({
+    required String field,
+    required String search,
+    required int limit,
+    required int offset,
+  }) {
+    return rust_file.getFieldValues(
+      field: field,
+      search: search,
+      limit: limit,
+      offset: offset,
+    );
   }
 }

@@ -38,6 +38,19 @@ Future<Logs> getLogs({
 Future<String?> getLogDetail({required int id}) =>
     RustLib.instance.api.crateFileGetLogDetail(id: id);
 
+/// 1.5 dart查询某个字段的可能值 (用于自动补全)
+Future<List<String>> getFieldValues({
+  required String field,
+  required String search,
+  required int limit,
+  required int offset,
+}) => RustLib.instance.api.crateFileGetFieldValues(
+  field: field,
+  search: search,
+  limit: limit,
+  offset: offset,
+);
+
 Future<RenderConfig> getRenderConfig() =>
     RustLib.instance.api.crateFileGetRenderConfig();
 

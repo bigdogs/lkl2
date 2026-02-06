@@ -6,6 +6,7 @@ import 'package:lkl2/ui/widgets/log_list.dart';
 import 'package:lkl2/ui/widgets/log_render_engine.dart';
 import 'package:lkl2/ui/widgets/active_filters_bar.dart';
 import 'package:lkl2/ui/widgets/bottom_status_bar.dart';
+import 'package:lkl2/ui/widgets/value_input_with_suggestions.dart';
 
 class BottomArea extends StatefulWidget {
   const BottomArea({super.key});
@@ -66,7 +67,6 @@ class _BottomAreaState extends State<BottomArea> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<LogProvider>();
-    final theme = MacosTheme.of(context);
 
     return Column(
       children: [
@@ -135,9 +135,9 @@ class _BottomAreaState extends State<BottomArea> {
                   // Value Input
                   Expanded(
                     flex: 2,
-                    child: MacosTextField(
+                    child: ValueInputWithSuggestions(
                       controller: _valueController,
-                      placeholder: 'Value',
+                      selectedField: _selectedField,
                       onSubmitted: (_) => _addFilter(provider),
                     ),
                   ),
@@ -201,18 +201,6 @@ class _BottomAreaState extends State<BottomArea> {
             ],
           ),
         ),
-
-        // Search/Filter Error
-        if (provider.searchError != null)
-          Container(
-            padding: const EdgeInsets.all(8),
-            width: double.infinity,
-            color: MacosColors.systemRedColor.withValues(alpha: 0.1),
-            child: Text(
-              "Error: ${provider.searchError}",
-              style: const TextStyle(color: MacosColors.systemRedColor),
-            ),
-          ),
 
         // Results List
         if (provider.filters.isNotEmpty || provider.lastSearchQuery.isNotEmpty)
