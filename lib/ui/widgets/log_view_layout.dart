@@ -18,8 +18,8 @@ class _LogViewLayoutState extends State<LogViewLayout> {
     super.initState();
     _controller = MultiSplitViewController(
       areas: [
-        Area(data: const MainLogArea(), flex: 6),
-        Area(data: const BottomArea(), flex: 4),
+        Area(data: const MainLogArea(), flex: 6, min: 2),
+        Area(data: const BottomArea(), flex: 4, min: 2),
       ],
     );
   }

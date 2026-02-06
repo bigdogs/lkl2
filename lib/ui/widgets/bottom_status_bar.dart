@@ -18,7 +18,7 @@ class BottomStatusBar extends StatelessWidget {
         : const Color(0xFFF5F5F5); // Light gray for light mode
 
     return Container(
-      height: 26,
+      height: 18,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: backgroundColor,
