@@ -142,7 +142,10 @@ class _BottomAreaState extends State<BottomArea> {
                   ),
                   const SizedBox(width: 4),
                   MacosIconButton(
-                    icon: const MacosIcon(CupertinoIcons.add_circled),
+                    icon: const MacosIcon(
+                      CupertinoIcons.plus_circle,
+                      color: MacosColors.systemBlueColor,
+                    ),
                     onPressed: () => _addFilter(provider),
                   ),
 
@@ -168,7 +171,10 @@ class _BottomAreaState extends State<BottomArea> {
 
                   // Actions
                   MacosIconButton(
-                    icon: const MacosIcon(CupertinoIcons.refresh),
+                    icon: const MacosIcon(
+                      CupertinoIcons.arrow_2_circlepath,
+                      color: MacosColors.systemBlueColor,
+                    ),
                     onPressed: () {
                       provider.clearFilters();
                       _searchController.clear();
@@ -183,8 +189,9 @@ class _BottomAreaState extends State<BottomArea> {
                       provider.search(_searchController.text);
                     },
                     child: const MacosIcon(
-                      CupertinoIcons.slider_horizontal_3,
+                      CupertinoIcons.line_horizontal_3_decrease,
                       size: 18,
+                      color: MacosColors.systemBlueColor,
                     ),
                   ),
                 ],
@@ -219,9 +226,9 @@ class _BottomAreaState extends State<BottomArea> {
                             GestureDetector(
                               onTap: () => provider.removeFilter(filter),
                               child: const MacosIcon(
-                                CupertinoIcons.clear_circled_solid,
+                                CupertinoIcons.xmark_circle_fill,
                                 size: 16,
-                                color: MacosColors.systemGrayColor,
+                                color: MacosColors.systemBlueColor,
                               ),
                             ),
                           ],

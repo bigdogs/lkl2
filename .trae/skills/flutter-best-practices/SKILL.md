@@ -1,91 +1,58 @@
 ---
 name: "flutter-best-practices"
-description: "Provides Flutter code standards, architectural patterns, and development tips based on the LKL2 project. Invoke when writing new Flutter code, refactoring, or seeking guidance on project structure."
+description: "Provides Flutter code standards, macOS UI guidelines, and architectural patterns. Invoke when writing UI code, refactoring, or ensuring project consistency."
 ---
 
-# Flutter Best Practices & Project Standards
+# Flutter Best Practices & Style Guide
 
-This skill outlines the architectural patterns, coding standards, and best practices for the LKL2 project. Follow these guidelines to maintain code quality and consistency.
+This skill combines architectural standards, macOS UI guidelines, and structural best practices for the LKL2 project.
 
 ## 1. Project Architecture (Layered Architecture)
 
-The project follows a clear separation of concerns using a layered architecture:
+-   **Data Layer (`lib/data/`)**: Handles data retrieval (Repositories).
+-   **Logic Layer (Providers)**: Manages state using `Provider`. Calls repositories. **No UI code here.**
+-   **UI Layer (`lib/ui/`)**: Displays data. **Widgets must be dumb.**
 
--   **Data Layer (`lib/data/`)**: Handles data retrieval and storage.
-    -   **Repositories (`lib/data/repository/`)**: Abstract data sources (e.g., Rust FFI, Network, Database).
-    -   **Pattern**: Use interfaces (e.g., `ILogRepository`) to define contracts. This allows for easier testing and implementation swapping.
-    -   **Example**: `LogRepository` wraps `rust_file` calls.
+## 2. Structural Organization (Componentization)
 
--   **Logic Layer (Providers)**: Manages application state and business logic.
-    -   **Location**: Root of `lib/` or `lib/logic/` (if complex).
-    -   **State Management**: Use `Provider` (`ChangeNotifier`).
-    -   **Responsibility**: Calls Repositories, maintains state, notifies listeners. **Never** put UI code in Providers.
+**Constraint**: Independent features MUST be extracted into independent components in their own files.
 
--   **UI Layer (`lib/ui/`)**: Displays data and handles user interactions.
-    -   **Pages (`lib/ui/pages/`)**: Top-level screens (e.g., `HomePage`).
-    -   **Widgets (`lib/ui/widgets/`)**: Reusable UI components.
-    -   **Pattern**: Widgets should be dumb (display data) and delegate logic to Providers.
+-   **One Widget per File**: If a widget class is not private `_Widget`, it generally belongs in its own file.
+-   **Complex Private Widgets**: If a private widget `_SubWidget` exceeds ~50 lines or handles distinct logic, extract it to a separate file in `lib/ui/widgets/` or a feature-specific subdirectory.
+-   **Dialogs/Modals**: Always extract Dialogs, BottomSheets, and complex ContextMenus into separate files (e.g., `lib/ui/dialogs/`).
+-   **File Naming**: Use snake_case. Matches class name (e.g., `LogDetailDialog` -> `log_detail_dialog.dart`).
 
-### Directory Structure
-```
-lib/
-├── data/
-│   └── repository/  # Data abstraction
-├── ui/
-│   ├── pages/       # Full screens
-│   └── widgets/     # Reusable components
-├── src/
-│   └── rust/        # Generated FFI code
-├── log_provider.dart # State management
-└── main.dart         # Entry point & App configuration
-```
+## 3. macOS UI Style Guide (`macos_ui`)
 
-## 2. Coding Standards
+**Core Constraints**:
+1.  **Package**: MUST use `macos_ui` widgets (not Material/Cupertino) where possible.
+2.  **Icons**: Use `CupertinoIcons`.
+3.  **Structure**: Top-level pages use `MacosWindow` -> `MacosScaffold`.
 
--   **Linter**: Strictly follow `flutter analyze`. Treat warnings as errors where possible.
--   **Imports**:
-    -   Prefer `package:` imports over relative imports for files in other modules.
-    -   Group imports: Dart core -> 3rd party packages -> Project files.
--   **Naming**:
-    -   Classes: `UpperCamelCase`
-    -   Variables/Methods: `lowerCamelCase`
-    -   Files: `snake_case.dart`
-    -   Private members: Prefix with `_`.
--   **Async/Await**:
-    -   Always use `await` for Futures instead of `.then()`.
-    -   Handle errors using `try-catch` blocks in the Logic Layer (Providers), not in UI.
+**Widget Mapping**:
+| Material | macOS UI |
+| :--- | :--- |
+| `Scaffold` | `MacosScaffold` |
+| `AppBar` | `ToolBar` |
+| `ElevatedButton` | `PushButton` |
+| `TextField` | `MacosTextField` |
+| `AlertDialog` | `MacosAlertDialog` (or custom `Center` container for size control) |
 
-## 3. Flutter Development Tips
+**Styling**:
+-   **Typography**: `MacosTheme.of(context).typography`.
+-   **Colors**: `MacosColors.labelColor`, `MacosColors.systemBlueColor`.
+-   **Theme Awareness**: All colors MUST support both Light and Dark modes.
+    -   Use `MacosColors` system colors (e.g., `systemBlueColor`, `labelColor`) which automatically adapt.
+    -   Avoid hardcoded colors like `Colors.white` or `Colors.black`.
+    -   Test UI in both themes to ensure contrast and visibility.
+-   **Hover**: Use `MouseRegion` with `MacosColors.systemBlueColor.withValues(alpha: 0.18)`.
 
-### State Management (Provider)
--   **Accessing Data**:
-    -   `context.watch<T>()`: Use in `build` methods to rebuild on change.
-    -   `context.read<T>()`: Use in callbacks (e.g., `onPressed`) to access methods without rebuilding.
--   **Consumer**: Use `Consumer<T>` to wrap only the specific widget that needs rebuilding to optimize performance.
+## 4. Coding Standards
 
-### UI & Layout
--   **Responsive Design**:
-    -   Use `Platform.isMacOS` / `Platform.isWindows` to render platform-specific UI (e.g., `PlatformMenuBar` vs `MenuBar`).
-    -   Use `LayoutBuilder` if layout needs to change based on window size.
--   **Widget Decomposition**:
-    -   Extract complex widgets into smaller, separate files in `lib/ui/widgets/`.
-    -   Keep `build` methods clean and readable.
--   **Themes**: Use `Theme.of(context)` to access colors and text styles. Avoid hardcoding colors.
-
-### Rust Integration (FFI)
--   **Abstraction**: Never call Rust FFI functions directly from UI. Wrap them in a Repository.
--   **Types**: Use generated types from `src/rust/` but consider mapping them to Domain models if they become too coupled to FFI specifics.
--   **Initialization**: Ensure `RustLib.init()` is called in `main()` before `runApp()`.
-
-## 4. Common Tasks
-
-### Adding a New Feature
-1.  **Define Interface**: Add method to `ILogRepository` (or relevant Repo).
-2.  **Implement Data**: Implement method in `LogRepository` (calling Rust FFI).
-3.  **Add Logic**: Add method to `LogProvider`, calling the Repository and updating state.
-4.  **Create UI**: Create widgets in `lib/ui/widgets/` and bind to Provider.
-
-### Refactoring
--   If a file exceeds 200 lines, consider splitting it.
--   If a widget has too many nested levels, extract sub-widgets.
--   Move logic out of `onPressed` handlers into the Provider.
+-   **Linter**: Fix all warnings.
+-   **Imports**: `package:` imports preferred.
+-   **Async**: Use `await`, handle errors in Providers.
+-   **Refactoring**: Split files > 200 lines. Extract nested trees.
+-   **Build Verification**: After making code changes, you MUST verify that the project compiles successfully.
+    -   On Windows, run: `flutter build windows --debug`
+    -   On macOS, run: `flutter build macos --debug`

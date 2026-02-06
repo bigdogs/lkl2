@@ -1,12 +1,14 @@
 import 'dart:io';
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:lkl2/log_provider.dart';
+import 'package:lkl2/theme_provider.dart';
+import 'package:lkl2/ui/widgets/file_drop_zone.dart';
 import 'package:lkl2/ui/widgets/log_view_layout.dart';
 import 'package:lkl2/src/rust/file.dart';
 import 'package:lkl2/ui/widgets/app_menu.dart';
-import 'package:desktop_drop/desktop_drop.dart';
 import 'package:macos_ui/macos_ui.dart';
 
 class HomePage extends StatefulWidget {
@@ -17,13 +19,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  bool _isDragging = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = context.watch<LogProvider>();
-
-    final menus = [
+  List<MenuGroupData> _buildMenus(BuildContext context, LogProvider provider) {
+    final themeProvider = context.watch<ThemeProvider>();
+    return [
       MenuGroupData(
         label: 'File',
         items: [
@@ -56,9 +54,21 @@ class _HomePageState extends State<HomePage> {
               control: true,
             ),
           ),
+          MenuItemData(
+            label: themeProvider.themeMode == ThemeMode.dark
+                ? 'Switch to Light Mode'
+                : 'Switch to Dark Mode',
+            onSelected: () => themeProvider.toggleTheme(),
+          ),
         ],
       ),
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<LogProvider>();
+    final menus = _buildMenus(context, provider);
 
     if (Platform.isMacOS) {
       return PlatformMenuBar(
@@ -66,28 +76,10 @@ class _HomePageState extends State<HomePage> {
         child: MacosWindow(
           backgroundColor: MacosTheme.of(context).canvasColor,
           child: MacosScaffold(
-            toolBar: const ToolBar(title: Text('LKL2 Log Viewer')),
             children: [
               ContentArea(
                 builder: (context, _) {
-                  return DropTarget(
-                    onDragDone: (detail) async {
-                      if (detail.files.isNotEmpty) {
-                        await provider.openLogFile(detail.files.first.path);
-                      }
-                    },
-                    onDragEntered: (detail) {
-                      setState(() {
-                        _isDragging = true;
-                      });
-                    },
-                    onDragExited: (detail) {
-                      setState(() {
-                        _isDragging = false;
-                      });
-                    },
-                    child: _buildBody(context, provider),
-                  );
+                  return FileDropZone(child: _buildBody(context, provider));
                 },
               ),
             ],
@@ -102,22 +94,7 @@ class _HomePageState extends State<HomePage> {
             ContentArea(
               minWidth: 0,
               builder: (context, scrollController) {
-                return DropTarget(
-                  onDragDone: (detail) async {
-                    if (detail.files.isNotEmpty) {
-                      await provider.openLogFile(detail.files.first.path);
-                    }
-                  },
-                  onDragEntered: (detail) {
-                    setState(() {
-                      _isDragging = true;
-                    });
-                  },
-                  onDragExited: (detail) {
-                    setState(() {
-                      _isDragging = false;
-                    });
-                  },
+                return FileDropZone(
                   child: Container(
                     color: MacosTheme.of(context).canvasColor,
                     child: Column(
@@ -138,29 +115,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildBody(BuildContext context, LogProvider provider) {
-    if (_isDragging) {
-      return Container(
-        color: MacosTheme.of(context).primaryColor.withValues(alpha: 0.1),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              MacosIcon(
-                CupertinoIcons.doc_on_clipboard,
-                size: 64,
-                color: MacosColors.systemBlueColor,
-              ),
-              SizedBox(height: 16),
-              Text(
-                "Release to open file",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return provider.status.when(
       uninit: () => const Center(
         child: Text(

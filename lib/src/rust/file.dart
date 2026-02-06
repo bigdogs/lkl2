@@ -9,7 +9,7 @@ import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'file.freezed.dart';
 
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AppState`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// 1.1 dart打开文件 -> rust后台开启线程处理文件
 Future<void> openFile({required String path}) =>
@@ -37,6 +37,9 @@ Future<Logs> getLogs({
 /// 1.4 dart查询特定日志的详细信息
 Future<String?> getLogDetail({required int id}) =>
     RustLib.instance.api.crateFileGetLogDetail(id: id);
+
+Future<RenderConfig> getRenderConfig() =>
+    RustLib.instance.api.crateFileGetRenderConfig();
 
 @freezed
 sealed class FileStatus with _$FileStatus {
@@ -82,4 +85,70 @@ class Logs {
           runtimeType == other.runtimeType &&
           logs == other.logs &&
           totalCount == other.totalCount;
+}
+
+class RenderCell {
+  final String expr;
+  final String? style;
+  final int? maxLines;
+  final bool? ellipsis;
+
+  const RenderCell({
+    required this.expr,
+    this.style,
+    this.maxLines,
+    this.ellipsis,
+  });
+
+  @override
+  int get hashCode =>
+      expr.hashCode ^ style.hashCode ^ maxLines.hashCode ^ ellipsis.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RenderCell &&
+          runtimeType == other.runtimeType &&
+          expr == other.expr &&
+          style == other.style &&
+          maxLines == other.maxLines &&
+          ellipsis == other.ellipsis;
+}
+
+class RenderColumn {
+  final double? width;
+  final int? flex;
+  final List<RenderCell> rows;
+
+  const RenderColumn({this.width, this.flex, required this.rows});
+
+  @override
+  int get hashCode => width.hashCode ^ flex.hashCode ^ rows.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RenderColumn &&
+          runtimeType == other.runtimeType &&
+          width == other.width &&
+          flex == other.flex &&
+          rows == other.rows;
+}
+
+class RenderConfig {
+  final List<RenderColumn> columns;
+  final List<String> fields;
+
+  const RenderConfig({required this.columns, required this.fields});
+
+  @override
+  int get hashCode => columns.hashCode ^ fields.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RenderConfig &&
+          runtimeType == other.runtimeType &&
+          columns == other.columns &&
+          fields == other.fields;
 }

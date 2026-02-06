@@ -19,6 +19,27 @@ pub struct Logs {
     pub total_count: u32,
 }
 
+#[derive(Clone, Debug)]
+pub struct RenderConfig {
+    pub columns: Vec<RenderColumn>,
+    pub fields: Vec<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct RenderColumn {
+    pub width: Option<f64>,
+    pub flex: Option<i32>,
+    pub rows: Vec<RenderCell>,
+}
+
+#[derive(Clone, Debug)]
+pub struct RenderCell {
+    pub expr: String,
+    pub style: Option<String>,
+    pub max_lines: Option<i32>,
+    pub ellipsis: Option<bool>,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum FileStatus {
     Uninit,
@@ -185,4 +206,21 @@ pub fn get_log_detail(id: u32) -> Result<Option<String>> {
     } else {
         Ok(None)
     }
+}
+
+pub fn get_render_config() -> Result<RenderConfig> {
+    let config = Config::load()?;
+    let fields = config.logs.keys().cloned().collect();
+    let columns = config.columns.into_iter().map(|c| RenderColumn {
+        width: c.width,
+        flex: c.flex,
+        rows: c.rows.into_iter().map(|r| RenderCell {
+            expr: r.expr,
+            style: r.style,
+            max_lines: r.max_lines,
+            ellipsis: r.ellipsis,
+        }).collect(),
+    }).collect();
+
+    Ok(RenderConfig { columns, fields })
 }
