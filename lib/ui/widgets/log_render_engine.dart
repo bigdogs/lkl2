@@ -7,32 +7,11 @@ class LogRenderEngine {
 
   const LogRenderEngine(this.config);
 
-  static final LogRenderEngine fallback = LogRenderEngine(
-    const RenderConfig(
-      columns: [
-        RenderColumn(
-          width: 180,
-          rows: [RenderCell(expr: r'time($eventTime)', style: 'meta')],
-        ),
-        RenderColumn(
-          flex: 3,
-          rows: [RenderCell(expr: r'$eventName', style: 'text')],
-        ),
-      ],
-      fields: ['eventTime', 'eventName'],
-    ),
-  );
-
   static final Future<LogRenderEngine> shared = _load();
 
   static Future<LogRenderEngine> _load() async {
-    try {
-      final config = await getRenderConfig();
-      return LogRenderEngine(config);
-    } catch (e) {
-      debugPrint("Error loading log config from Rust: $e");
-      return fallback;
-    }
+    final config = await getRenderConfig();
+    return LogRenderEngine(config);
   }
 
   List<Widget> buildCells(BuildContext context, Log log, bool showLineNumbers) {
@@ -46,7 +25,9 @@ class LogRenderEngine {
           log,
           const RenderColumn(
             width: 50,
-            rows: [RenderCell(expr: r'$lineNumber', style: 'meta')],
+            rows: [
+              RenderCell(expr: r'$lineNumber', style: 'meta', elements: []),
+            ],
           ),
         ),
       );
@@ -74,13 +55,26 @@ class LogRenderEngine {
         .map((row) => _buildCell(context, log, row))
         .toList();
 
-    final child = col.rows.length == 1
-        ? widgets.first
-        : Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: widgets,
-          );
+    CrossAxisAlignment crossAlign = CrossAxisAlignment.start;
+    if (col.align == 'center') {
+      crossAlign = CrossAxisAlignment.center;
+    } else if (col.align == 'right') {
+      crossAlign = CrossAxisAlignment.end;
+    }
+
+    Widget child;
+    if (col.rows.length == 1) {
+      child = widgets.first;
+      if (col.align != null) {
+        child = Align(alignment: _toAlignment(col.align), child: child);
+      }
+    } else {
+      child = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: crossAlign,
+        children: widgets,
+      );
+    }
 
     if (col.width != null) {
       return SizedBox(width: col.width, child: child);
@@ -91,12 +85,47 @@ class LogRenderEngine {
     return Expanded(child: child);
   }
 
+  Alignment _toAlignment(String? align) {
+    if (align == 'center') return Alignment.center;
+    if (align == 'right') return Alignment.centerRight;
+    return Alignment.centerLeft;
+  }
+
   Widget _buildCell(BuildContext context, Log log, RenderCell cell) {
-    final text = _evalExpr(log, cell.expr);
+    if (cell.elements.isNotEmpty) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: cell.elements.asMap().entries.map((entry) {
+          final index = entry.key;
+          final e = entry.value;
+          final widget = _buildElement(context, log, e);
+          if (index < cell.elements.length - 1) {
+            return Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: widget,
+            );
+          }
+          return widget;
+        }).toList(),
+      );
+    }
+
+    final text = _evalExpr(log, cell.expr ?? '');
     final maxLines = cell.maxLines ?? 1;
     final overflow = cell.ellipsis == false ? null : TextOverflow.ellipsis;
 
     return _styledText(context, text, cell.style ?? 'text', maxLines, overflow);
+  }
+
+  Widget _buildElement(BuildContext context, Log log, RenderElement element) {
+    final text = _evalExpr(log, element.expr);
+    return _styledText(
+      context,
+      text,
+      element.style ?? 'text',
+      1,
+      TextOverflow.ellipsis,
+    );
   }
 
   Widget _styledText(

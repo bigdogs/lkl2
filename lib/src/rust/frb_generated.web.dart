@@ -69,6 +69,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<RenderColumn> dco_decode_list_render_column(dynamic raw);
 
   @protected
+  List<RenderElement> dco_decode_list_render_element(dynamic raw);
+
+  @protected
   Log dco_decode_log(dynamic raw);
 
   @protected
@@ -97,6 +100,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RenderConfig dco_decode_render_config(dynamic raw);
+
+  @protected
+  RenderElement dco_decode_render_element(dynamic raw);
 
   @protected
   int dco_decode_u_32(dynamic raw);
@@ -162,6 +168,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<RenderElement> sse_decode_list_render_element(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   Log sse_decode_log(SseDeserializer deserializer);
 
   @protected
@@ -192,6 +203,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RenderConfig sse_decode_render_config(SseDeserializer deserializer);
+
+  @protected
+  RenderElement sse_decode_render_element(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_32(SseDeserializer deserializer);
@@ -269,6 +283,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_render_element(
+    List<RenderElement> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_log(Log self, SseSerializer serializer);
 
   @protected
@@ -300,6 +320,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_render_config(RenderConfig self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_render_element(RenderElement self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_32(int self, SseSerializer serializer);

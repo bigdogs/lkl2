@@ -32,15 +32,24 @@ class _BottomAreaState extends State<BottomArea> {
   }
 
   Future<void> _loadFields() async {
-    final engine = await LogRenderEngine.shared;
-    if (mounted) {
-      setState(() {
-        _fields = engine.config.fields;
-        if (_fields.isNotEmpty) {
-          _selectedField = _fields.first;
-        }
-        _isLoadingFields = false;
-      });
+    try {
+      final engine = await LogRenderEngine.shared;
+      if (mounted) {
+        setState(() {
+          _fields = engine.config.fields;
+          if (_fields.isNotEmpty) {
+            _selectedField = _fields.first;
+          }
+          _isLoadingFields = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading fields: $e");
+      if (mounted) {
+        setState(() {
+          _isLoadingFields = false;
+        });
+      }
     }
   }
 

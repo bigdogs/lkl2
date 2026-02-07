@@ -64,7 +64,39 @@ class _LogItemState extends State<LogItem> {
     return FutureBuilder<LogRenderEngine>(
       future: LogRenderEngine.shared,
       builder: (context, snapshot) {
-        final engine = snapshot.data ?? LogRenderEngine.fallback;
+        if (snapshot.hasError) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: widget.index.isEven
+                  ? MacosColors.selectedMenuItemTextColor
+                  : MacosTheme.of(context).canvasColor,
+            ),
+            child: Row(
+              children: [
+                const MacosIcon(
+                  CupertinoIcons.exclamationmark_triangle,
+                  color: MacosColors.systemRedColor,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  "Parse Error: ${snapshot.error}",
+                  style: const TextStyle(
+                    color: MacosColors.systemRedColor,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        if (!snapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+
+        final engine = snapshot.data!;
         // Alternating background color
         final backgroundColor = widget.index.isEven
             ? MacosColors.selectedMenuItemTextColor

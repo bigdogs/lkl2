@@ -17,7 +17,7 @@
 # END;
 [logs]
 # 字段全定义为TEXT类型
-lineNumber= "$lineno"
+lineNumber = "$lineno"
 eventTime = "$line.Event.paltformUtcTime"
 eventName = "$line.Event.telemetryEventName"
 sourceNodeId = "$line.Event.SourcenodeId"
@@ -25,12 +25,14 @@ targetNodeId = "$line.Event.TargetnodeId"
 
 [[col]]
 width = 120
+align = "center"
 [[col.row]]
 expr = "time($eventTime)"
 style = "meta"
 
 [[col]]
 width = 140
+align = "center"
 [[col.row]]
 expr = "$eventName"
 style = "text"
@@ -47,8 +49,12 @@ style = "text"
 [[col]]
 flex = 1
 [[col.row]]
+[[col.row.elements]]
 expr = "$targetNodeId"
 style = "tag"
+[[col.row.elements]]
+expr = "$targetNodeId"
+style = "text"
 [[col.row]]
 expr = "$targetNodeId"
 style = "text"

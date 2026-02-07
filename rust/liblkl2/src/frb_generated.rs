@@ -409,6 +409,18 @@ impl SseDecode for Vec<crate::file::RenderColumn> {
     }
 }
 
+impl SseDecode for Vec<crate::file::RenderElement> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::file::RenderElement>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for crate::file::Log {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -489,15 +501,17 @@ impl SseDecode for (String, String) {
 impl SseDecode for crate::file::RenderCell {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_expr = <String>::sse_decode(deserializer);
+        let mut var_expr = <Option<String>>::sse_decode(deserializer);
         let mut var_style = <Option<String>>::sse_decode(deserializer);
         let mut var_maxLines = <Option<i32>>::sse_decode(deserializer);
         let mut var_ellipsis = <Option<bool>>::sse_decode(deserializer);
+        let mut var_elements = <Vec<crate::file::RenderElement>>::sse_decode(deserializer);
         return crate::file::RenderCell {
             expr: var_expr,
             style: var_style,
             max_lines: var_maxLines,
             ellipsis: var_ellipsis,
+            elements: var_elements,
         };
     }
 }
@@ -507,10 +521,12 @@ impl SseDecode for crate::file::RenderColumn {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_width = <Option<f64>>::sse_decode(deserializer);
         let mut var_flex = <Option<i32>>::sse_decode(deserializer);
+        let mut var_align = <Option<String>>::sse_decode(deserializer);
         let mut var_rows = <Vec<crate::file::RenderCell>>::sse_decode(deserializer);
         return crate::file::RenderColumn {
             width: var_width,
             flex: var_flex,
+            align: var_align,
             rows: var_rows,
         };
     }
@@ -524,6 +540,18 @@ impl SseDecode for crate::file::RenderConfig {
         return crate::file::RenderConfig {
             columns: var_columns,
             fields: var_fields,
+        };
+    }
+}
+
+impl SseDecode for crate::file::RenderElement {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_expr = <String>::sse_decode(deserializer);
+        let mut var_style = <Option<String>>::sse_decode(deserializer);
+        return crate::file::RenderElement {
+            expr: var_expr,
+            style: var_style,
         };
     }
 }
@@ -642,6 +670,7 @@ impl flutter_rust_bridge::IntoDart for crate::file::RenderCell {
             self.style.into_into_dart().into_dart(),
             self.max_lines.into_into_dart().into_dart(),
             self.ellipsis.into_into_dart().into_dart(),
+            self.elements.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -658,6 +687,7 @@ impl flutter_rust_bridge::IntoDart for crate::file::RenderColumn {
         [
             self.width.into_into_dart().into_dart(),
             self.flex.into_into_dart().into_dart(),
+            self.align.into_into_dart().into_dart(),
             self.rows.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -682,6 +712,22 @@ impl flutter_rust_bridge::IntoDart for crate::file::RenderConfig {
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::file::RenderConfig {}
 impl flutter_rust_bridge::IntoIntoDart<crate::file::RenderConfig> for crate::file::RenderConfig {
     fn into_into_dart(self) -> crate::file::RenderConfig {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::file::RenderElement {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.expr.into_into_dart().into_dart(),
+            self.style.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::file::RenderElement {}
+impl flutter_rust_bridge::IntoIntoDart<crate::file::RenderElement> for crate::file::RenderElement {
+    fn into_into_dart(self) -> crate::file::RenderElement {
         self
     }
 }
@@ -812,6 +858,16 @@ impl SseEncode for Vec<crate::file::RenderColumn> {
     }
 }
 
+impl SseEncode for Vec<crate::file::RenderElement> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::file::RenderElement>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for crate::file::Log {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -879,10 +935,11 @@ impl SseEncode for (String, String) {
 impl SseEncode for crate::file::RenderCell {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.expr, serializer);
+        <Option<String>>::sse_encode(self.expr, serializer);
         <Option<String>>::sse_encode(self.style, serializer);
         <Option<i32>>::sse_encode(self.max_lines, serializer);
         <Option<bool>>::sse_encode(self.ellipsis, serializer);
+        <Vec<crate::file::RenderElement>>::sse_encode(self.elements, serializer);
     }
 }
 
@@ -891,6 +948,7 @@ impl SseEncode for crate::file::RenderColumn {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Option<f64>>::sse_encode(self.width, serializer);
         <Option<i32>>::sse_encode(self.flex, serializer);
+        <Option<String>>::sse_encode(self.align, serializer);
         <Vec<crate::file::RenderCell>>::sse_encode(self.rows, serializer);
     }
 }
@@ -900,6 +958,14 @@ impl SseEncode for crate::file::RenderConfig {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Vec<crate::file::RenderColumn>>::sse_encode(self.columns, serializer);
         <Vec<String>>::sse_encode(self.fields, serializer);
+    }
+}
+
+impl SseEncode for crate::file::RenderElement {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.expr, serializer);
+        <Option<String>>::sse_encode(self.style, serializer);
     }
 }
 

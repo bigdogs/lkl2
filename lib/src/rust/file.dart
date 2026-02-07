@@ -9,7 +9,7 @@ import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'file.freezed.dart';
 
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AppState`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// 1.1 dart打开文件 -> rust后台开启线程处理文件
 Future<void> openFile({required String path}) =>
@@ -101,21 +101,27 @@ class Logs {
 }
 
 class RenderCell {
-  final String expr;
+  final String? expr;
   final String? style;
   final int? maxLines;
   final bool? ellipsis;
+  final List<RenderElement> elements;
 
   const RenderCell({
-    required this.expr,
+    this.expr,
     this.style,
     this.maxLines,
     this.ellipsis,
+    required this.elements,
   });
 
   @override
   int get hashCode =>
-      expr.hashCode ^ style.hashCode ^ maxLines.hashCode ^ ellipsis.hashCode;
+      expr.hashCode ^
+      style.hashCode ^
+      maxLines.hashCode ^
+      ellipsis.hashCode ^
+      elements.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -125,18 +131,21 @@ class RenderCell {
           expr == other.expr &&
           style == other.style &&
           maxLines == other.maxLines &&
-          ellipsis == other.ellipsis;
+          ellipsis == other.ellipsis &&
+          elements == other.elements;
 }
 
 class RenderColumn {
   final double? width;
   final int? flex;
+  final String? align;
   final List<RenderCell> rows;
 
-  const RenderColumn({this.width, this.flex, required this.rows});
+  const RenderColumn({this.width, this.flex, this.align, required this.rows});
 
   @override
-  int get hashCode => width.hashCode ^ flex.hashCode ^ rows.hashCode;
+  int get hashCode =>
+      width.hashCode ^ flex.hashCode ^ align.hashCode ^ rows.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -145,6 +154,7 @@ class RenderColumn {
           runtimeType == other.runtimeType &&
           width == other.width &&
           flex == other.flex &&
+          align == other.align &&
           rows == other.rows;
 }
 
@@ -164,4 +174,22 @@ class RenderConfig {
           runtimeType == other.runtimeType &&
           columns == other.columns &&
           fields == other.fields;
+}
+
+class RenderElement {
+  final String expr;
+  final String? style;
+
+  const RenderElement({required this.expr, this.style});
+
+  @override
+  int get hashCode => expr.hashCode ^ style.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RenderElement &&
+          runtimeType == other.runtimeType &&
+          expr == other.expr &&
+          style == other.style;
 }

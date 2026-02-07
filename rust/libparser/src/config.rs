@@ -19,16 +19,25 @@ pub struct Config {
 pub struct ColumnConfig {
     pub width: Option<f64>,
     pub flex: Option<i32>,
+    pub align: Option<String>,
     #[serde(rename = "row", default)]
     pub rows: Vec<RowConfig>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct RowConfig {
-    pub expr: String,
+    pub expr: Option<String>,
     pub style: Option<String>,
     pub max_lines: Option<i32>,
     pub ellipsis: Option<bool>,
+    #[serde(default)]
+    pub elements: Vec<ElementConfig>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct ElementConfig {
+    pub expr: String,
+    pub style: Option<String>,
 }
 
 impl Config {
@@ -57,8 +66,18 @@ mod tests {
         println!("Loaded config: {:?}", config);
         assert_eq!(config.columns.len(), 4, "Expected 4 columns, got {}", config.columns.len());
         
+        // Check first column alignment
+        let first_col = &config.columns[0];
+        assert_eq!(first_col.align.as_deref(), Some("center"));
+
         // Check rows of last column
         let last_col = config.columns.last().unwrap();
         assert_eq!(last_col.rows.len(), 2, "Expected 2 rows in last column");
+        
+        // Check elements in the first row of the last column
+        let first_row = &last_col.rows[0];
+        assert_eq!(first_row.elements.len(), 2, "Expected 2 elements in the first row");
+        assert_eq!(first_row.elements[0].style.as_deref(), Some("tag"));
+        assert_eq!(first_row.elements[1].style.as_deref(), Some("text"));
     }
 }

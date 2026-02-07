@@ -404,6 +404,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<RenderElement> dco_decode_list_render_element(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_render_element).toList();
+  }
+
+  @protected
   Log dco_decode_log(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -465,13 +471,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RenderCell dco_decode_render_cell(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
     return RenderCell(
-      expr: dco_decode_String(arr[0]),
+      expr: dco_decode_opt_String(arr[0]),
       style: dco_decode_opt_String(arr[1]),
       maxLines: dco_decode_opt_box_autoadd_i_32(arr[2]),
       ellipsis: dco_decode_opt_box_autoadd_bool(arr[3]),
+      elements: dco_decode_list_render_element(arr[4]),
     );
   }
 
@@ -479,12 +486,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RenderColumn dco_decode_render_column(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return RenderColumn(
       width: dco_decode_opt_box_autoadd_f_64(arr[0]),
       flex: dco_decode_opt_box_autoadd_i_32(arr[1]),
-      rows: dco_decode_list_render_cell(arr[2]),
+      align: dco_decode_opt_String(arr[2]),
+      rows: dco_decode_list_render_cell(arr[3]),
     );
   }
 
@@ -497,6 +505,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return RenderConfig(
       columns: dco_decode_list_render_column(arr[0]),
       fields: dco_decode_list_String(arr[1]),
+    );
+  }
+
+  @protected
+  RenderElement dco_decode_render_element(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return RenderElement(
+      expr: dco_decode_String(arr[0]),
+      style: dco_decode_opt_String(arr[1]),
     );
   }
 
@@ -669,6 +689,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<RenderElement> sse_decode_list_render_element(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <RenderElement>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_render_element(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   Log sse_decode_log(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_id = sse_decode_u_32(deserializer);
@@ -741,15 +775,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   RenderCell sse_decode_render_cell(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_expr = sse_decode_String(deserializer);
+    var var_expr = sse_decode_opt_String(deserializer);
     var var_style = sse_decode_opt_String(deserializer);
     var var_maxLines = sse_decode_opt_box_autoadd_i_32(deserializer);
     var var_ellipsis = sse_decode_opt_box_autoadd_bool(deserializer);
+    var var_elements = sse_decode_list_render_element(deserializer);
     return RenderCell(
       expr: var_expr,
       style: var_style,
       maxLines: var_maxLines,
       ellipsis: var_ellipsis,
+      elements: var_elements,
     );
   }
 
@@ -758,8 +794,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_width = sse_decode_opt_box_autoadd_f_64(deserializer);
     var var_flex = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_align = sse_decode_opt_String(deserializer);
     var var_rows = sse_decode_list_render_cell(deserializer);
-    return RenderColumn(width: var_width, flex: var_flex, rows: var_rows);
+    return RenderColumn(
+      width: var_width,
+      flex: var_flex,
+      align: var_align,
+      rows: var_rows,
+    );
   }
 
   @protected
@@ -768,6 +810,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_columns = sse_decode_list_render_column(deserializer);
     var var_fields = sse_decode_list_String(deserializer);
     return RenderConfig(columns: var_columns, fields: var_fields);
+  }
+
+  @protected
+  RenderElement sse_decode_render_element(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_expr = sse_decode_String(deserializer);
+    var var_style = sse_decode_opt_String(deserializer);
+    return RenderElement(expr: var_expr, style: var_style);
   }
 
   @protected
@@ -931,6 +981,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_render_element(
+    List<RenderElement> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_render_element(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_log(Log self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_u_32(self.id, serializer);
@@ -997,10 +1059,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_encode_render_cell(RenderCell self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.expr, serializer);
+    sse_encode_opt_String(self.expr, serializer);
     sse_encode_opt_String(self.style, serializer);
     sse_encode_opt_box_autoadd_i_32(self.maxLines, serializer);
     sse_encode_opt_box_autoadd_bool(self.ellipsis, serializer);
+    sse_encode_list_render_element(self.elements, serializer);
   }
 
   @protected
@@ -1008,6 +1071,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_opt_box_autoadd_f_64(self.width, serializer);
     sse_encode_opt_box_autoadd_i_32(self.flex, serializer);
+    sse_encode_opt_String(self.align, serializer);
     sse_encode_list_render_cell(self.rows, serializer);
   }
 
@@ -1016,6 +1080,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_render_column(self.columns, serializer);
     sse_encode_list_String(self.fields, serializer);
+  }
+
+  @protected
+  void sse_encode_render_element(RenderElement self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.expr, serializer);
+    sse_encode_opt_String(self.style, serializer);
   }
 
   @protected

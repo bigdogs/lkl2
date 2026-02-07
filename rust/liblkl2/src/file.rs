@@ -29,15 +29,23 @@ pub struct RenderConfig {
 pub struct RenderColumn {
     pub width: Option<f64>,
     pub flex: Option<i32>,
+    pub align: Option<String>,
     pub rows: Vec<RenderCell>,
 }
 
 #[derive(Clone, Debug)]
 pub struct RenderCell {
-    pub expr: String,
+    pub expr: Option<String>,
     pub style: Option<String>,
     pub max_lines: Option<i32>,
     pub ellipsis: Option<bool>,
+    pub elements: Vec<RenderElement>,
+}
+
+#[derive(Clone, Debug)]
+pub struct RenderElement {
+    pub expr: String,
+    pub style: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -254,11 +262,16 @@ pub fn get_render_config() -> Result<RenderConfig> {
     let columns = config.columns.into_iter().map(|c| RenderColumn {
         width: c.width,
         flex: c.flex,
+        align: c.align,
         rows: c.rows.into_iter().map(|r| RenderCell {
             expr: r.expr,
             style: r.style,
             max_lines: r.max_lines,
             ellipsis: r.ellipsis,
+            elements: r.elements.into_iter().map(|e| RenderElement {
+                expr: e.expr,
+                style: e.style,
+            }).collect(),
         }).collect(),
     }).collect();
 
