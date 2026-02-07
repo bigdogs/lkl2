@@ -52,6 +52,7 @@ flex = 1
 [[col.row.elements]]
 expr = "$targetNodeId"
 style = "tag"
+tooltip = "$targetNodeId"
 [[col.row.elements]]
 expr = "$targetNodeId"
 style = "text"

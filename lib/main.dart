@@ -65,9 +65,10 @@ class Lkl2 extends StatelessWidget {
             theme: MacosThemeData.light(),
             darkTheme: MacosThemeData.dark(),
             themeMode: themeProvider.themeMode,
-            scrollBehavior: Platform.isMacOS
-                ? const MacosScrollBehavior()
-                : const MaterialScrollBehavior(),
+            // scrollBehavior: Platform.isMacOS
+            //     ? const MacosScrollBehavior()
+            //     : const MaterialScrollBehavior(),
+            scrollBehavior: const MaterialScrollBehavior(),
             home: const HomePage(),
           );
         },

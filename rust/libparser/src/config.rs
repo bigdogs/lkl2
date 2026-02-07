@@ -30,6 +30,7 @@ pub struct RowConfig {
     pub style: Option<String>,
     pub max_lines: Option<i32>,
     pub ellipsis: Option<bool>,
+    pub tooltip: Option<String>,
     #[serde(default)]
     pub elements: Vec<ElementConfig>,
 }
@@ -38,6 +39,7 @@ pub struct RowConfig {
 pub struct ElementConfig {
     pub expr: String,
     pub style: Option<String>,
+    pub tooltip: Option<String>,
 }
 
 impl Config {

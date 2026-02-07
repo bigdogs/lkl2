@@ -105,6 +105,7 @@ class RenderCell {
   final String? style;
   final int? maxLines;
   final bool? ellipsis;
+  final String? tooltip;
   final List<RenderElement> elements;
 
   const RenderCell({
@@ -112,6 +113,7 @@ class RenderCell {
     this.style,
     this.maxLines,
     this.ellipsis,
+    this.tooltip,
     required this.elements,
   });
 
@@ -121,6 +123,7 @@ class RenderCell {
       style.hashCode ^
       maxLines.hashCode ^
       ellipsis.hashCode ^
+      tooltip.hashCode ^
       elements.hashCode;
 
   @override
@@ -132,6 +135,7 @@ class RenderCell {
           style == other.style &&
           maxLines == other.maxLines &&
           ellipsis == other.ellipsis &&
+          tooltip == other.tooltip &&
           elements == other.elements;
 }
 
@@ -179,11 +183,12 @@ class RenderConfig {
 class RenderElement {
   final String expr;
   final String? style;
+  final String? tooltip;
 
-  const RenderElement({required this.expr, this.style});
+  const RenderElement({required this.expr, this.style, this.tooltip});
 
   @override
-  int get hashCode => expr.hashCode ^ style.hashCode;
+  int get hashCode => expr.hashCode ^ style.hashCode ^ tooltip.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -191,5 +196,6 @@ class RenderElement {
       other is RenderElement &&
           runtimeType == other.runtimeType &&
           expr == other.expr &&
-          style == other.style;
+          style == other.style &&
+          tooltip == other.tooltip;
 }

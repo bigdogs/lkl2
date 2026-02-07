@@ -114,18 +114,40 @@ class LogRenderEngine {
     final maxLines = cell.maxLines ?? 1;
     final overflow = cell.ellipsis == false ? null : TextOverflow.ellipsis;
 
-    return _styledText(context, text, cell.style ?? 'text', maxLines, overflow);
+    final widget = _styledText(
+      context,
+      text,
+      cell.style ?? 'text',
+      maxLines,
+      overflow,
+    );
+
+    if (cell.tooltip != null) {
+      final tooltipMessage = _evalExpr(log, cell.tooltip!);
+      if (tooltipMessage.isNotEmpty) {
+        return MacosTooltip(message: tooltipMessage, child: widget);
+      }
+    }
+    return widget;
   }
 
   Widget _buildElement(BuildContext context, Log log, RenderElement element) {
     final text = _evalExpr(log, element.expr);
-    return _styledText(
+    final widget = _styledText(
       context,
       text,
       element.style ?? 'text',
       1,
       TextOverflow.ellipsis,
     );
+
+    if (element.tooltip != null) {
+      final tooltipMessage = _evalExpr(log, element.tooltip!);
+      if (tooltipMessage.isNotEmpty) {
+        return MacosTooltip(message: tooltipMessage, child: widget);
+      }
+    }
+    return widget;
   }
 
   Widget _styledText(

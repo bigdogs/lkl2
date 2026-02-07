@@ -505,12 +505,14 @@ impl SseDecode for crate::file::RenderCell {
         let mut var_style = <Option<String>>::sse_decode(deserializer);
         let mut var_maxLines = <Option<i32>>::sse_decode(deserializer);
         let mut var_ellipsis = <Option<bool>>::sse_decode(deserializer);
+        let mut var_tooltip = <Option<String>>::sse_decode(deserializer);
         let mut var_elements = <Vec<crate::file::RenderElement>>::sse_decode(deserializer);
         return crate::file::RenderCell {
             expr: var_expr,
             style: var_style,
             max_lines: var_maxLines,
             ellipsis: var_ellipsis,
+            tooltip: var_tooltip,
             elements: var_elements,
         };
     }
@@ -549,9 +551,11 @@ impl SseDecode for crate::file::RenderElement {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_expr = <String>::sse_decode(deserializer);
         let mut var_style = <Option<String>>::sse_decode(deserializer);
+        let mut var_tooltip = <Option<String>>::sse_decode(deserializer);
         return crate::file::RenderElement {
             expr: var_expr,
             style: var_style,
+            tooltip: var_tooltip,
         };
     }
 }
@@ -670,6 +674,7 @@ impl flutter_rust_bridge::IntoDart for crate::file::RenderCell {
             self.style.into_into_dart().into_dart(),
             self.max_lines.into_into_dart().into_dart(),
             self.ellipsis.into_into_dart().into_dart(),
+            self.tooltip.into_into_dart().into_dart(),
             self.elements.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -721,6 +726,7 @@ impl flutter_rust_bridge::IntoDart for crate::file::RenderElement {
         [
             self.expr.into_into_dart().into_dart(),
             self.style.into_into_dart().into_dart(),
+            self.tooltip.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -939,6 +945,7 @@ impl SseEncode for crate::file::RenderCell {
         <Option<String>>::sse_encode(self.style, serializer);
         <Option<i32>>::sse_encode(self.max_lines, serializer);
         <Option<bool>>::sse_encode(self.ellipsis, serializer);
+        <Option<String>>::sse_encode(self.tooltip, serializer);
         <Vec<crate::file::RenderElement>>::sse_encode(self.elements, serializer);
     }
 }
@@ -966,6 +973,7 @@ impl SseEncode for crate::file::RenderElement {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.expr, serializer);
         <Option<String>>::sse_encode(self.style, serializer);
+        <Option<String>>::sse_encode(self.tooltip, serializer);
     }
 }
 

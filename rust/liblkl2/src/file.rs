@@ -39,6 +39,7 @@ pub struct RenderCell {
     pub style: Option<String>,
     pub max_lines: Option<i32>,
     pub ellipsis: Option<bool>,
+    pub tooltip: Option<String>,
     pub elements: Vec<RenderElement>,
 }
 
@@ -46,6 +47,7 @@ pub struct RenderCell {
 pub struct RenderElement {
     pub expr: String,
     pub style: Option<String>,
+    pub tooltip: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -268,9 +270,11 @@ pub fn get_render_config() -> Result<RenderConfig> {
             style: r.style,
             max_lines: r.max_lines,
             ellipsis: r.ellipsis,
+            tooltip: r.tooltip,
             elements: r.elements.into_iter().map(|e| RenderElement {
                 expr: e.expr,
                 style: e.style,
+                tooltip: e.tooltip,
             }).collect(),
         }).collect(),
     }).collect();

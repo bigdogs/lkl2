@@ -102,23 +102,33 @@ class _LogItemState extends State<LogItem> {
             ? MacosColors.selectedMenuItemTextColor
             : MacosTheme.of(context).canvasColor;
 
-        return GestureDetector(
-          onSecondaryTapDown: (details) {
-            // Intercept secondary tap down to prevent SelectionArea from handling it.
-            // SelectionArea triggers _handleRightClickDown -> _selectWordAt which causes a crash.
+        return SelectionArea(
+          contextMenuBuilder: (context, state) {
+            return const SizedBox.shrink();
           },
-          onSecondaryTapUp: (details) {
-            _showContextMenu(context, details.globalPosition);
+          onSelectionChanged: (content) {
+            final hasSelection =
+                content != null && content.plainText.isNotEmpty;
+            context.read<LogProvider>().setSelection(hasSelection);
           },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(color: backgroundColor),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: engine.buildCells(
-                context,
-                widget.log,
-                provider.showLineNumbers,
+          child: GestureDetector(
+            onSecondaryTapDown: (details) {
+              // Intercept secondary tap down to prevent SelectionArea from handling it.
+              // SelectionArea triggers _handleRightClickDown -> _selectWordAt which causes a crash.
+            },
+            onSecondaryTapUp: (details) {
+              _showContextMenu(context, details.globalPosition);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: backgroundColor),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: engine.buildCells(
+                  context,
+                  widget.log,
+                  provider.showLineNumbers,
+                ),
               ),
             ),
           ),

@@ -15,21 +15,12 @@ class LogList extends StatelessWidget {
       return const Center();
     }
 
-    return SelectionArea(
-      contextMenuBuilder: (context, state) {
-        return const SizedBox.shrink();
+    return ListView.builder(
+      itemCount: logs.length,
+      itemBuilder: (context, index) {
+        final log = logs[index];
+        return LogItem(log: log, index: index);
       },
-      onSelectionChanged: (content) {
-        final hasSelection = content != null && content.plainText.isNotEmpty;
-        context.read<LogProvider>().setSelection(hasSelection);
-      },
-      child: ListView.builder(
-        itemCount: logs.length,
-        itemBuilder: (context, index) {
-          final log = logs[index];
-          return LogItem(log: log, index: index);
-        },
-      ),
     );
   }
 }
