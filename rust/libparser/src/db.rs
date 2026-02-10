@@ -28,7 +28,7 @@ impl Db {
         conn.execute(&create_sql, [])?;
 
         conn.execute(
-            "CREATE VIRTUAL TABLE logs_fts USING fts5(raw, content='logs', content_rowid='id', tokenize='trigram', detail='none')",
+            "CREATE VIRTUAL TABLE logs_fts USING fts5(raw, content='logs', content_rowid='id', tokenize='trigram')",
             [],
         )?;
 

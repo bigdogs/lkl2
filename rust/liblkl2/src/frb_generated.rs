@@ -426,9 +426,11 @@ impl SseDecode for crate::file::Log {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_id = <u32>::sse_decode(deserializer);
         let mut var_fields = <std::collections::HashMap<String, String>>::sse_decode(deserializer);
+        let mut var_snippet = <Option<String>>::sse_decode(deserializer);
         return crate::file::Log {
             id: var_id,
             fields: var_fields,
+            snippet: var_snippet,
         };
     }
 }
@@ -640,6 +642,7 @@ impl flutter_rust_bridge::IntoDart for crate::file::Log {
         [
             self.id.into_into_dart().into_dart(),
             self.fields.into_into_dart().into_dart(),
+            self.snippet.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -879,6 +882,7 @@ impl SseEncode for crate::file::Log {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <u32>::sse_encode(self.id, serializer);
         <std::collections::HashMap<String, String>>::sse_encode(self.fields, serializer);
+        <Option<String>>::sse_encode(self.snippet, serializer);
     }
 }
 

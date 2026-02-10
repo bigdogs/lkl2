@@ -413,11 +413,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Log dco_decode_log(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return Log(
       id: dco_decode_u_32(arr[0]),
       fields: dco_decode_Map_String_String_None(arr[1]),
+      snippet: dco_decode_opt_String(arr[2]),
     );
   }
 
@@ -709,7 +710,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_id = sse_decode_u_32(deserializer);
     var var_fields = sse_decode_Map_String_String_None(deserializer);
-    return Log(id: var_id, fields: var_fields);
+    var var_snippet = sse_decode_opt_String(deserializer);
+    return Log(id: var_id, fields: var_fields, snippet: var_snippet);
   }
 
   @protected
@@ -1006,6 +1008,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_u_32(self.id, serializer);
     sse_encode_Map_String_String_None(self.fields, serializer);
+    sse_encode_opt_String(self.snippet, serializer);
   }
 
   @protected

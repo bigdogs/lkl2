@@ -83,7 +83,7 @@ class _BottomAreaState extends State<BottomArea> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: MacosColors.systemBlueColor.withValues(alpha: 0.03),
+            color: MacosColors.sliderBackgroundColor.withValues(alpha: 0.05),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,8 +153,9 @@ class _BottomAreaState extends State<BottomArea> {
                   const SizedBox(width: 4),
                   MacosIconButton(
                     icon: const MacosIcon(
-                      CupertinoIcons.plus_circle,
-                      color: MacosColors.systemBlueColor,
+                      CupertinoIcons.add,
+                      color: MacosColors.systemGrayColor,
+                      size: 20.0,
                     ),
                     onPressed: () => _addFilter(provider),
                   ),
@@ -184,7 +185,8 @@ class _BottomAreaState extends State<BottomArea> {
                   MacosIconButton(
                     icon: const MacosIcon(
                       CupertinoIcons.refresh,
-                      color: MacosColors.systemBlueColor,
+                      color: MacosColors.systemGrayColor,
+                      size: 20.0,
                     ),
                     onPressed: () {
                       provider.applyFilters();
@@ -194,8 +196,9 @@ class _BottomAreaState extends State<BottomArea> {
                   const SizedBox(width: 4),
                   MacosIconButton(
                     icon: const MacosIcon(
-                      CupertinoIcons.clear_circled,
-                      color: MacosColors.systemRedColor,
+                      CupertinoIcons.trash,
+                      color: MacosColors.systemGrayColor,
+                      size: 20.0,
                     ),
                     onPressed: () {
                       _searchController.clear();

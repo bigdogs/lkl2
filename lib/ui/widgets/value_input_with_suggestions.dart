@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:lkl2/log_provider.dart';
+import 'package:lkl2/ui/widgets/macos_overlay_container.dart';
 
 class ValueInputWithSuggestions extends StatefulWidget {
   final TextEditingController controller;
@@ -200,12 +201,6 @@ class _ValueInputWithSuggestionsState extends State<ValueInputWithSuggestions> {
 
   Widget _buildSuggestionList(double maxHeight) {
     final theme = MacosTheme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    // Match background color with ActiveFiltersBar (default state)
-    final backgroundColor = isDark
-        ? const Color(0xFF3A3A3A)
-        : const Color(0xFFF0F0F0);
 
     return Listener(
       onPointerDown: (_) {
@@ -224,27 +219,13 @@ class _ValueInputWithSuggestionsState extends State<ValueInputWithSuggestions> {
           }
         });
       },
-      child: Container(
+      child: MacosOverlayContainer(
         constraints: BoxConstraints(
           maxHeight: maxHeight < 200
               ? maxHeight
               : 200, // Cap at 200 or available space
         ),
-        padding: const EdgeInsets.symmetric(
-          vertical: 4,
-        ), // Add vertical padding
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: MacosColors.separatorColor, width: 0.5),
-          boxShadow: [
-            BoxShadow(
-              color: CupertinoColors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min, // Wrap content height
           children: [
@@ -334,11 +315,10 @@ class _SuggestionItemState extends State<_SuggestionItem> {
   @override
   Widget build(BuildContext context) {
     final theme = MacosTheme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
-    // Use macOS style selection color for hover
+    // Use macOS system accent color for hover, matching MacosPopupButton
     final backgroundColor = _isHovered
-        ? (isDark ? const Color(0xFF0058D0) : const Color(0xFF006CFF))
+        ? MacosColors.systemBlueColor
         : MacosColors.transparent;
 
     final textColor = _isHovered

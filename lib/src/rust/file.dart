@@ -67,11 +67,12 @@ sealed class FileStatus with _$FileStatus {
 class Log {
   final int id;
   final Map<String, String> fields;
+  final String? snippet;
 
-  const Log({required this.id, required this.fields});
+  const Log({required this.id, required this.fields, this.snippet});
 
   @override
-  int get hashCode => id.hashCode ^ fields.hashCode;
+  int get hashCode => id.hashCode ^ fields.hashCode ^ snippet.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -79,7 +80,8 @@ class Log {
       other is Log &&
           runtimeType == other.runtimeType &&
           id == other.id &&
-          fields == other.fields;
+          fields == other.fields &&
+          snippet == other.snippet;
 }
 
 class Logs {

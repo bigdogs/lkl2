@@ -11,6 +11,7 @@ use std::thread;
 pub struct Log {
     pub id: u32,
     pub fields: HashMap<String, String>,
+    pub snippet: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -120,7 +121,10 @@ pub fn get_logs(
     if let Some(engine) = &state.engine {
         // 1. Build Base Query
         let mut where_clauses = Vec::new();
-        
+        let mut join_clause = "".to_string();
+        let mut snippet_col = "".to_string();
+        let mut table_prefix = "";
+
         // FTS filter
         if !fts_query.trim().is_empty() {
             // Using subquery for FTS
@@ -128,7 +132,13 @@ pub fn get_logs(
             // Use phrase search to avoid syntax errors with special characters
             // Escape double quotes and single quotes
             let escaped_query = fts_query.replace("'", "''").replace("\"", "\"\"");
-            where_clauses.push(format!("id IN (SELECT rowid FROM logs_fts WHERE logs_fts MATCH '\"{}\"')", escaped_query));
+            
+            // Use JOIN instead of IN clause to allow highlight()
+            join_clause = "JOIN logs_fts ON logs.id = logs_fts.rowid".to_string();
+            where_clauses.push(format!("logs_fts MATCH '\"{}\"'", escaped_query));
+            // Use highlight() to get the full text with tags, then center in Rust
+            snippet_col = ", highlight(logs_fts, 0, '<b>', '</b>') as snippet".to_string();
+            table_prefix = "logs.";
         }
         
         // Normal filter
@@ -143,7 +153,7 @@ pub fn get_logs(
         };
 
         // 2. Get Count
-        let count_query = format!("SELECT COUNT(*) FROM logs {}", where_str);
+        let count_query = format!("SELECT COUNT(*) FROM logs {} {}", join_clause, where_str);
         // We use engine.execute_query which returns string results. 
         // Ideally libparser should expose a way to get raw values or we parse the string.
         let count_res = engine.execute_query(&count_query)?;
@@ -160,14 +170,14 @@ pub fn get_logs(
         // We want to select "id", "col1", "col2"...
         let select_cols: Vec<String> = columns.iter()
             .filter(|c| c.as_str() != "raw")
-            .cloned()
+            .map(|c| if !table_prefix.is_empty() { format!("{}{c} AS {c}", table_prefix) } else { c.clone() })
             .collect();
         
         let select_str = select_cols.join(", ");
         
         let data_query = format!(
-            "SELECT {} FROM logs {} LIMIT {} OFFSET {}",
-            select_str, where_str, limit, offset
+            "SELECT {}{} FROM logs {} {} LIMIT {} OFFSET {}",
+            select_str, snippet_col, join_clause, where_str, limit, offset
         );
         
         let query_res = engine.execute_query(&data_query)?;
@@ -179,18 +189,21 @@ pub fn get_logs(
         for row in query_res.rows {
             let mut fields = HashMap::new();
             let mut id = 0;
+            let mut snippet = None;
             
             for (i, val) in row.iter().enumerate() {
                 if i < headers.len() {
                     let col_name = &headers[i];
                     if col_name == "id" {
                         id = val.parse().unwrap_or(0);
+                    } else if col_name == "snippet" {
+                        snippet = Some(val.clone());
                     } else {
                         fields.insert(col_name.clone(), val.clone());
                     }
                 }
             }
-            logs.push(Log { id, fields });
+            logs.push(Log { id, fields, snippet });
         }
         
         Ok(Logs { logs, total_count })
