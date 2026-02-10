@@ -99,13 +99,21 @@ class LogRenderEngine {
           final index = entry.key;
           final e = entry.value;
           final widget = _buildElement(context, log, e);
+
+          // Apply padding to the widget directly, BEFORE wrapping in Flexible.
+          // Flexible MUST be the direct child of the Row.
+          Widget childWithPadding = widget;
           if (index < cell.elements.length - 1) {
-            return Padding(
+            childWithPadding = Padding(
               padding: const EdgeInsets.only(right: 8.0),
               child: widget,
             );
           }
-          return widget;
+
+          // Use Flexible to allow elements to shrink properly in the Row,
+          // avoiding "unconstrained width" issues with Text overflow: ellipsis.
+          // Using FlexFit.loose means they take only needed space up to available space.
+          return Flexible(fit: FlexFit.loose, child: childWithPadding);
         }).toList(),
       );
     }

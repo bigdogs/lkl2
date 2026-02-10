@@ -21,41 +21,7 @@ class LogItem extends StatefulWidget {
 }
 
 class _LogItemState extends State<LogItem> {
-  SelectableRegionState? _selectableRegion;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _selectableRegion = context
-        .findAncestorStateOfType<SelectableRegionState>();
-  }
-
-  @override
-  void dispose() {
-    // WORKAROUND: Clear selection when the item is scrolled out of view/disposed.
-    // This prevents SelectionArea from holding onto invalid geometries which causes crashes
-    // (Issue #126023).
-    // The user accepted this behavior: "If the selected area leaves the visible area, clear selection".
-    try {
-      if (_selectableRegion != null && _selectableRegion!.mounted) {
-        // We only clear if there is actually a selection to avoid unnecessary updates
-        // But we can't easily check if *this* item is selected.
-        // So we clear if there is ANY selection.
-        // This means scrolling will clear selection.
-
-        // Defer the clearSelection to the next frame to avoid "setState() or markNeedsBuild() called during build"
-        // This happens because dispose() is called during the build phase of the parent/ancestor.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_selectableRegion != null && _selectableRegion!.mounted) {
-            _selectableRegion!.clearSelection();
-          }
-        });
-      }
-    } catch (e) {
-      debugPrint("Error clearing selection on dispose: $e");
-    }
-    super.dispose();
-  }
+  bool _hasSelection = false;
 
   @override
   Widget build(BuildContext context) {
@@ -109,28 +75,38 @@ class _LogItemState extends State<LogItem> {
           onSelectionChanged: (content) {
             final hasSelection =
                 content != null && content.plainText.isNotEmpty;
-            context.read<LogProvider>().setSelection(hasSelection);
+            if (_hasSelection != hasSelection) {
+              setState(() {
+                _hasSelection = hasSelection;
+              });
+            }
           },
-          child: GestureDetector(
-            onSecondaryTapDown: (details) {
-              // Intercept secondary tap down to prevent SelectionArea from handling it.
-              // SelectionArea triggers _handleRightClickDown -> _selectWordAt which causes a crash.
-            },
-            onSecondaryTapUp: (details) {
-              _showContextMenu(context, details.globalPosition);
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: backgroundColor),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: engine.buildCells(
-                  context,
-                  widget.log,
-                  provider.showLineNumbers,
+          child: Builder(
+            builder: (innerContext) {
+              return GestureDetector(
+                onSecondaryTapDown: (details) {
+                  // Intercept secondary tap down to prevent SelectionArea from handling it.
+                },
+                onSecondaryTapUp: (details) {
+                  _showContextMenu(innerContext, details.globalPosition);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(color: backgroundColor),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: engine.buildCells(
+                      context,
+                      widget.log,
+                      provider.showLineNumbers,
+                    ),
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         );
       },
@@ -142,7 +118,7 @@ class _LogItemState extends State<LogItem> {
     late OverlayEntry entry;
 
     // Check for selection
-    final hasSelection = context.read<LogProvider>().hasSelection;
+    final hasSelection = _hasSelection;
 
     void close() {
       entry.remove();
