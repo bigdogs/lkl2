@@ -252,11 +252,12 @@ fn wire__crate__file__open_file_impl(
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_path = <String>::sse_decode(&mut deserializer);
+            let api_max_file_size = <Option<u64>>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, ()>((move || {
                     let output_ok = Result::<_, ()>::Ok({
-                        crate::file::open_file(api_path);
+                        crate::file::open_file(api_path, api_max_file_size);
                     })?;
                     Ok(output_ok)
                 })())
@@ -314,10 +315,22 @@ impl SseDecode for crate::file::FileStatus {
                 return crate::file::FileStatus::Uninit;
             }
             1 => {
-                return crate::file::FileStatus::Pending;
+                let mut var_phase = <String>::sse_decode(deserializer);
+                let mut var_progress = <f64>::sse_decode(deserializer);
+                let mut var_loadedCount = <u64>::sse_decode(deserializer);
+                return crate::file::FileStatus::Loading {
+                    phase: var_phase,
+                    progress: var_progress,
+                    loaded_count: var_loadedCount,
+                };
             }
             2 => {
-                return crate::file::FileStatus::Complete;
+                let mut var_totalCount = <u64>::sse_decode(deserializer);
+                let mut var_truncated = <bool>::sse_decode(deserializer);
+                return crate::file::FileStatus::Complete {
+                    total_count: var_totalCount,
+                    truncated: var_truncated,
+                };
             }
             3 => {
                 let mut var_field0 = <String>::sse_decode(deserializer);
@@ -491,6 +504,17 @@ impl SseDecode for Option<i32> {
     }
 }
 
+impl SseDecode for Option<u64> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<u64>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for (String, String) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -569,6 +593,13 @@ impl SseDecode for u32 {
     }
 }
 
+impl SseDecode for u64 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_u64::<NativeEndian>().unwrap()
+    }
+}
+
 impl SseDecode for u8 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -619,8 +650,26 @@ impl flutter_rust_bridge::IntoDart for crate::file::FileStatus {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
             crate::file::FileStatus::Uninit => [0.into_dart()].into_dart(),
-            crate::file::FileStatus::Pending => [1.into_dart()].into_dart(),
-            crate::file::FileStatus::Complete => [2.into_dart()].into_dart(),
+            crate::file::FileStatus::Loading {
+                phase,
+                progress,
+                loaded_count,
+            } => [
+                1.into_dart(),
+                phase.into_into_dart().into_dart(),
+                progress.into_into_dart().into_dart(),
+                loaded_count.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
+            crate::file::FileStatus::Complete {
+                total_count,
+                truncated,
+            } => [
+                2.into_dart(),
+                total_count.into_into_dart().into_dart(),
+                truncated.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
             crate::file::FileStatus::Error(field0) => {
                 [3.into_dart(), field0.into_into_dart().into_dart()].into_dart()
             }
@@ -783,11 +832,23 @@ impl SseEncode for crate::file::FileStatus {
             crate::file::FileStatus::Uninit => {
                 <i32>::sse_encode(0, serializer);
             }
-            crate::file::FileStatus::Pending => {
+            crate::file::FileStatus::Loading {
+                phase,
+                progress,
+                loaded_count,
+            } => {
                 <i32>::sse_encode(1, serializer);
+                <String>::sse_encode(phase, serializer);
+                <f64>::sse_encode(progress, serializer);
+                <u64>::sse_encode(loaded_count, serializer);
             }
-            crate::file::FileStatus::Complete => {
+            crate::file::FileStatus::Complete {
+                total_count,
+                truncated,
+            } => {
                 <i32>::sse_encode(2, serializer);
+                <u64>::sse_encode(total_count, serializer);
+                <bool>::sse_encode(truncated, serializer);
             }
             crate::file::FileStatus::Error(field0) => {
                 <i32>::sse_encode(3, serializer);
@@ -934,6 +995,16 @@ impl SseEncode for Option<i32> {
     }
 }
 
+impl SseEncode for Option<u64> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <u64>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for (String, String) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -985,6 +1056,13 @@ impl SseEncode for u32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_u32::<NativeEndian>(self).unwrap();
+    }
+}
+
+impl SseEncode for u64 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_u64::<NativeEndian>(self).unwrap();
     }
 }
 

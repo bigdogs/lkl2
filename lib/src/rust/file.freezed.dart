@@ -55,12 +55,12 @@ extension FileStatusPatterns on FileStatus {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( FileStatus_Uninit value)?  uninit,TResult Function( FileStatus_Pending value)?  pending,TResult Function( FileStatus_Complete value)?  complete,TResult Function( FileStatus_Error value)?  error,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( FileStatus_Uninit value)?  uninit,TResult Function( FileStatus_Loading value)?  loading,TResult Function( FileStatus_Complete value)?  complete,TResult Function( FileStatus_Error value)?  error,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case FileStatus_Uninit() when uninit != null:
-return uninit(_that);case FileStatus_Pending() when pending != null:
-return pending(_that);case FileStatus_Complete() when complete != null:
+return uninit(_that);case FileStatus_Loading() when loading != null:
+return loading(_that);case FileStatus_Complete() when complete != null:
 return complete(_that);case FileStatus_Error() when error != null:
 return error(_that);case _:
   return orElse();
@@ -80,12 +80,12 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( FileStatus_Uninit value)  uninit,required TResult Function( FileStatus_Pending value)  pending,required TResult Function( FileStatus_Complete value)  complete,required TResult Function( FileStatus_Error value)  error,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( FileStatus_Uninit value)  uninit,required TResult Function( FileStatus_Loading value)  loading,required TResult Function( FileStatus_Complete value)  complete,required TResult Function( FileStatus_Error value)  error,}){
 final _that = this;
 switch (_that) {
 case FileStatus_Uninit():
-return uninit(_that);case FileStatus_Pending():
-return pending(_that);case FileStatus_Complete():
+return uninit(_that);case FileStatus_Loading():
+return loading(_that);case FileStatus_Complete():
 return complete(_that);case FileStatus_Error():
 return error(_that);}
 }
@@ -101,12 +101,12 @@ return error(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( FileStatus_Uninit value)?  uninit,TResult? Function( FileStatus_Pending value)?  pending,TResult? Function( FileStatus_Complete value)?  complete,TResult? Function( FileStatus_Error value)?  error,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( FileStatus_Uninit value)?  uninit,TResult? Function( FileStatus_Loading value)?  loading,TResult? Function( FileStatus_Complete value)?  complete,TResult? Function( FileStatus_Error value)?  error,}){
 final _that = this;
 switch (_that) {
 case FileStatus_Uninit() when uninit != null:
-return uninit(_that);case FileStatus_Pending() when pending != null:
-return pending(_that);case FileStatus_Complete() when complete != null:
+return uninit(_that);case FileStatus_Loading() when loading != null:
+return loading(_that);case FileStatus_Complete() when complete != null:
 return complete(_that);case FileStatus_Error() when error != null:
 return error(_that);case _:
   return null;
@@ -125,12 +125,12 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  uninit,TResult Function()?  pending,TResult Function()?  complete,TResult Function( String field0)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  uninit,TResult Function( String phase,  double progress,  BigInt loadedCount)?  loading,TResult Function( BigInt totalCount,  bool truncated)?  complete,TResult Function( String field0)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case FileStatus_Uninit() when uninit != null:
-return uninit();case FileStatus_Pending() when pending != null:
-return pending();case FileStatus_Complete() when complete != null:
-return complete();case FileStatus_Error() when error != null:
+return uninit();case FileStatus_Loading() when loading != null:
+return loading(_that.phase,_that.progress,_that.loadedCount);case FileStatus_Complete() when complete != null:
+return complete(_that.totalCount,_that.truncated);case FileStatus_Error() when error != null:
 return error(_that.field0);case _:
   return orElse();
 
@@ -149,12 +149,12 @@ return error(_that.field0);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  uninit,required TResult Function()  pending,required TResult Function()  complete,required TResult Function( String field0)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  uninit,required TResult Function( String phase,  double progress,  BigInt loadedCount)  loading,required TResult Function( BigInt totalCount,  bool truncated)  complete,required TResult Function( String field0)  error,}) {final _that = this;
 switch (_that) {
 case FileStatus_Uninit():
-return uninit();case FileStatus_Pending():
-return pending();case FileStatus_Complete():
-return complete();case FileStatus_Error():
+return uninit();case FileStatus_Loading():
+return loading(_that.phase,_that.progress,_that.loadedCount);case FileStatus_Complete():
+return complete(_that.totalCount,_that.truncated);case FileStatus_Error():
 return error(_that.field0);}
 }
 /// A variant of `when` that fallback to returning `null`
@@ -169,12 +169,12 @@ return error(_that.field0);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  uninit,TResult? Function()?  pending,TResult? Function()?  complete,TResult? Function( String field0)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  uninit,TResult? Function( String phase,  double progress,  BigInt loadedCount)?  loading,TResult? Function( BigInt totalCount,  bool truncated)?  complete,TResult? Function( String field0)?  error,}) {final _that = this;
 switch (_that) {
 case FileStatus_Uninit() when uninit != null:
-return uninit();case FileStatus_Pending() when pending != null:
-return pending();case FileStatus_Complete() when complete != null:
-return complete();case FileStatus_Error() when error != null:
+return uninit();case FileStatus_Loading() when loading != null:
+return loading(_that.phase,_that.progress,_that.loadedCount);case FileStatus_Complete() when complete != null:
+return complete(_that.totalCount,_that.truncated);case FileStatus_Error() when error != null:
 return error(_that.field0);case _:
   return null;
 
@@ -218,66 +218,143 @@ String toString() {
 /// @nodoc
 
 
-class FileStatus_Pending extends FileStatus {
-  const FileStatus_Pending(): super._();
+class FileStatus_Loading extends FileStatus {
+  const FileStatus_Loading({required this.phase, required this.progress, required this.loadedCount}): super._();
   
 
+/// "reading" or "indexing"
+ final  String phase;
+/// 0.0 – 1.0
+ final  double progress;
+/// Items processed so far in the current phase.
+ final  BigInt loadedCount;
 
-
+/// Create a copy of FileStatus
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$FileStatus_LoadingCopyWith<FileStatus_Loading> get copyWith => _$FileStatus_LoadingCopyWithImpl<FileStatus_Loading>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileStatus_Pending);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileStatus_Loading&&(identical(other.phase, phase) || other.phase == phase)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.loadedCount, loadedCount) || other.loadedCount == loadedCount));
 }
 
 
 @override
-int get hashCode => runtimeType.hashCode;
+int get hashCode => Object.hash(runtimeType,phase,progress,loadedCount);
 
 @override
 String toString() {
-  return 'FileStatus.pending()';
+  return 'FileStatus.loading(phase: $phase, progress: $progress, loadedCount: $loadedCount)';
 }
 
 
 }
 
+/// @nodoc
+abstract mixin class $FileStatus_LoadingCopyWith<$Res> implements $FileStatusCopyWith<$Res> {
+  factory $FileStatus_LoadingCopyWith(FileStatus_Loading value, $Res Function(FileStatus_Loading) _then) = _$FileStatus_LoadingCopyWithImpl;
+@useResult
+$Res call({
+ String phase, double progress, BigInt loadedCount
+});
 
 
+
+
+}
+/// @nodoc
+class _$FileStatus_LoadingCopyWithImpl<$Res>
+    implements $FileStatus_LoadingCopyWith<$Res> {
+  _$FileStatus_LoadingCopyWithImpl(this._self, this._then);
+
+  final FileStatus_Loading _self;
+  final $Res Function(FileStatus_Loading) _then;
+
+/// Create a copy of FileStatus
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? phase = null,Object? progress = null,Object? loadedCount = null,}) {
+  return _then(FileStatus_Loading(
+phase: null == phase ? _self.phase : phase // ignore: cast_nullable_to_non_nullable
+as String,progress: null == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
+as double,loadedCount: null == loadedCount ? _self.loadedCount : loadedCount // ignore: cast_nullable_to_non_nullable
+as BigInt,
+  ));
+}
+
+
+}
 
 /// @nodoc
 
 
 class FileStatus_Complete extends FileStatus {
-  const FileStatus_Complete(): super._();
+  const FileStatus_Complete({required this.totalCount, required this.truncated}): super._();
   
 
+ final  BigInt totalCount;
+ final  bool truncated;
 
-
+/// Create a copy of FileStatus
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$FileStatus_CompleteCopyWith<FileStatus_Complete> get copyWith => _$FileStatus_CompleteCopyWithImpl<FileStatus_Complete>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileStatus_Complete);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileStatus_Complete&&(identical(other.totalCount, totalCount) || other.totalCount == totalCount)&&(identical(other.truncated, truncated) || other.truncated == truncated));
 }
 
 
 @override
-int get hashCode => runtimeType.hashCode;
+int get hashCode => Object.hash(runtimeType,totalCount,truncated);
 
 @override
 String toString() {
-  return 'FileStatus.complete()';
+  return 'FileStatus.complete(totalCount: $totalCount, truncated: $truncated)';
 }
 
 
 }
 
+/// @nodoc
+abstract mixin class $FileStatus_CompleteCopyWith<$Res> implements $FileStatusCopyWith<$Res> {
+  factory $FileStatus_CompleteCopyWith(FileStatus_Complete value, $Res Function(FileStatus_Complete) _then) = _$FileStatus_CompleteCopyWithImpl;
+@useResult
+$Res call({
+ BigInt totalCount, bool truncated
+});
 
 
+
+
+}
+/// @nodoc
+class _$FileStatus_CompleteCopyWithImpl<$Res>
+    implements $FileStatus_CompleteCopyWith<$Res> {
+  _$FileStatus_CompleteCopyWithImpl(this._self, this._then);
+
+  final FileStatus_Complete _self;
+  final $Res Function(FileStatus_Complete) _then;
+
+/// Create a copy of FileStatus
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? totalCount = null,Object? truncated = null,}) {
+  return _then(FileStatus_Complete(
+totalCount: null == totalCount ? _self.totalCount : totalCount // ignore: cast_nullable_to_non_nullable
+as BigInt,truncated: null == truncated ? _self.truncated : truncated // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
 
 /// @nodoc
 

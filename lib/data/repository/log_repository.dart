@@ -1,7 +1,7 @@
 import 'package:lkl2/src/rust/file.dart' as rust_file;
 
 abstract class ILogRepository {
-  Future<void> openFile(String path);
+  Future<void> openFile(String path, {int? maxFileSize});
   Future<rust_file.FileStatus> getFileStatus();
   Future<rust_file.Logs> getLogs({
     required String filterSql,
@@ -20,8 +20,11 @@ abstract class ILogRepository {
 
 class LogRepository implements ILogRepository {
   @override
-  Future<void> openFile(String path) {
-    return rust_file.openFile(path: path);
+  Future<void> openFile(String path, {int? maxFileSize}) {
+    return rust_file.openFile(
+      path: path,
+      maxFileSize: maxFileSize != null ? BigInt.from(maxFileSize) : null,
+    );
   }
 
   @override

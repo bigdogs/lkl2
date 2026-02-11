@@ -95,7 +95,7 @@ abstract class RustLibApi extends BaseApi {
 
   Future<RenderConfig> crateFileGetRenderConfig();
 
-  Future<void> crateFileOpenFile({required String path});
+  Future<void> crateFileOpenFile({required String path, BigInt? maxFileSize});
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -265,12 +265,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "get_render_config", argNames: []);
 
   @override
-  Future<void> crateFileOpenFile({required String path}) {
+  Future<void> crateFileOpenFile({required String path, BigInt? maxFileSize}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(path, serializer);
+          sse_encode_opt_box_autoadd_u_64(maxFileSize, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -283,14 +284,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: null,
         ),
         constMeta: kCrateFileOpenFileConstMeta,
-        argValues: [path],
+        argValues: [path, maxFileSize],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateFileOpenFileConstMeta =>
-      const TaskConstMeta(debugName: "open_file", argNames: ["path"]);
+  TaskConstMeta get kCrateFileOpenFileConstMeta => const TaskConstMeta(
+    debugName: "open_file",
+    argNames: ["path", "maxFileSize"],
+  );
 
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw) {
@@ -339,6 +342,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt dco_decode_box_autoadd_u_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_u_64(raw);
+  }
+
+  @protected
   double dco_decode_f_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as double;
@@ -351,9 +360,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case 0:
         return FileStatus_Uninit();
       case 1:
-        return FileStatus_Pending();
+        return FileStatus_Loading(
+          phase: dco_decode_String(raw[1]),
+          progress: dco_decode_f_64(raw[2]),
+          loadedCount: dco_decode_u_64(raw[3]),
+        );
       case 2:
-        return FileStatus_Complete();
+        return FileStatus_Complete(
+          totalCount: dco_decode_u_64(raw[1]),
+          truncated: dco_decode_bool(raw[2]),
+        );
       case 3:
         return FileStatus_Error(dco_decode_String(raw[1]));
       default:
@@ -459,6 +475,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_u_64(raw);
+  }
+
+  @protected
   (String, String) dco_decode_record_string_string(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -530,6 +552,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt dco_decode_u_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeU64(raw);
+  }
+
+  @protected
   int dco_decode_u_8(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
@@ -589,6 +617,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_u_64(deserializer));
+  }
+
+  @protected
   double sse_decode_f_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getFloat64();
@@ -603,9 +637,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case 0:
         return FileStatus_Uninit();
       case 1:
-        return FileStatus_Pending();
+        var var_phase = sse_decode_String(deserializer);
+        var var_progress = sse_decode_f_64(deserializer);
+        var var_loadedCount = sse_decode_u_64(deserializer);
+        return FileStatus_Loading(
+          phase: var_phase,
+          progress: var_progress,
+          loadedCount: var_loadedCount,
+        );
       case 2:
-        return FileStatus_Complete();
+        var var_totalCount = sse_decode_u_64(deserializer);
+        var var_truncated = sse_decode_bool(deserializer);
+        return FileStatus_Complete(
+          totalCount: var_totalCount,
+          truncated: var_truncated,
+        );
       case 3:
         var var_field0 = sse_decode_String(deserializer);
         return FileStatus_Error(var_field0);
@@ -767,6 +813,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_u_64(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   (String, String) sse_decode_record_string_string(
     SseDeserializer deserializer,
   ) {
@@ -838,6 +895,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt sse_decode_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getBigUint64();
+  }
+
+  @protected
   int sse_decode_u_8(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8();
@@ -900,6 +963,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self, serializer);
+  }
+
+  @protected
   void sse_encode_f_64(double self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putFloat64(self);
@@ -911,10 +980,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     switch (self) {
       case FileStatus_Uninit():
         sse_encode_i_32(0, serializer);
-      case FileStatus_Pending():
+      case FileStatus_Loading(
+        phase: final phase,
+        progress: final progress,
+        loadedCount: final loadedCount,
+      ):
         sse_encode_i_32(1, serializer);
-      case FileStatus_Complete():
+        sse_encode_String(phase, serializer);
+        sse_encode_f_64(progress, serializer);
+        sse_encode_u_64(loadedCount, serializer);
+      case FileStatus_Complete(
+        totalCount: final totalCount,
+        truncated: final truncated,
+      ):
         sse_encode_i_32(2, serializer);
+        sse_encode_u_64(totalCount, serializer);
+        sse_encode_bool(truncated, serializer);
       case FileStatus_Error(field0: final field0):
         sse_encode_i_32(3, serializer);
         sse_encode_String(field0, serializer);
@@ -1059,6 +1140,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_u_64(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_record_string_string(
     (String, String) self,
     SseSerializer serializer,
@@ -1107,6 +1198,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_u_32(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint32(self);
+  }
+
+  @protected
+  void sse_encode_u_64(BigInt self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putBigUint64(self);
   }
 
   @protected

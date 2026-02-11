@@ -687,6 +687,7 @@ dependencies = [
  "anyhow",
  "flutter_rust_bridge",
  "libparser",
+ "log",
  "once_cell",
  "serde",
  "serde_json",

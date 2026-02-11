@@ -66,8 +66,13 @@ mod tests {
         assert!(config.is_ok(), "Config load failed: {:?}", config.err());
         let config = config.unwrap();
         println!("Loaded config: {:?}", config);
-        assert_eq!(config.columns.len(), 4, "Expected 4 columns, got {}", config.columns.len());
-        
+        assert_eq!(
+            config.columns.len(),
+            4,
+            "Expected 4 columns, got {}",
+            config.columns.len()
+        );
+
         // Check first column alignment
         let first_col = &config.columns[0];
         assert_eq!(first_col.align.as_deref(), Some("center"));
@@ -75,10 +80,14 @@ mod tests {
         // Check rows of last column
         let last_col = config.columns.last().unwrap();
         assert_eq!(last_col.rows.len(), 2, "Expected 2 rows in last column");
-        
+
         // Check elements in the first row of the last column
         let first_row = &last_col.rows[0];
-        assert_eq!(first_row.elements.len(), 2, "Expected 2 elements in the first row");
+        assert_eq!(
+            first_row.elements.len(),
+            2,
+            "Expected 2 elements in the first row"
+        );
         assert_eq!(first_row.elements[0].style.as_deref(), Some("tag"));
         assert_eq!(first_row.elements[1].style.as_deref(), Some("text"));
     }

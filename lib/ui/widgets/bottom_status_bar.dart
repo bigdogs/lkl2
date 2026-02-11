@@ -18,7 +18,7 @@ class BottomStatusBar extends StatelessWidget {
         : const Color(0xFFF5F5F5); // Light gray for light mode
 
     return Container(
-      height: 18,
+      height: 22,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: backgroundColor,
@@ -30,25 +30,30 @@ class BottomStatusBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Left: Results Count
-          if (provider.isSearching)
-            const SizedBox(
-              height: 14,
-              width: 14,
-              child: ProgressCircle(value: null), // Indeterminate spinner
-            )
-          else
-            Text(
-              _getStatusText(provider),
-              style: theme.typography.caption1.copyWith(
-                fontSize: 11,
-                color: MacosColors.labelColor.resolveFrom(context),
+          // --- Loading progress ---
+          if (provider.isFileLoading) ...[
+            _buildLoadingIndicator(context, provider),
+          ] else ...[
+            // --- Normal status (search results / idle) ---
+            if (provider.isSearching)
+              const SizedBox(
+                height: 14,
+                width: 14,
+                child: ProgressCircle(value: null),
+              )
+            else
+              Text(
+                _getStatusText(provider),
+                style: theme.typography.caption1.copyWith(
+                  fontSize: 11,
+                  color: MacosColors.labelColor.resolveFrom(context),
+                ),
               ),
-            ),
+          ],
 
           const SizedBox(width: 12),
 
-          // Right: Error Message (if any)
+          // Error message (if any)
           if (provider.searchError != null) ...[
             MacosIcon(
               CupertinoIcons.exclamationmark_triangle_fill,
@@ -74,8 +79,44 @@ class BottomStatusBar extends StatelessWidget {
               ),
             ),
           ],
+
+          const Spacer(),
+
+          // Truncation indicator
+          if (provider.truncated && !provider.isFileLoading)
+            Text(
+              'Tail-loaded',
+              style: theme.typography.caption1.copyWith(
+                fontSize: 11,
+                color: MacosColors.secondaryLabelColor.resolveFrom(context),
+              ),
+            ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLoadingIndicator(BuildContext context, LogProvider provider) {
+    final theme = MacosTheme.of(context);
+    final progress = provider.loadProgress ?? 0;
+    final pct = (progress * 100).toInt();
+    final phaseLabel = provider.loadPhase == 'indexing'
+        ? 'Indexing'
+        : 'Loading';
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(width: 80, child: ProgressBar(value: progress * 100)),
+        const SizedBox(width: 8),
+        Text(
+          '$phaseLabel: $pct%',
+          style: theme.typography.caption1.copyWith(
+            fontSize: 11,
+            color: MacosColors.labelColor.resolveFrom(context),
+          ),
+        ),
+      ],
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:lkl2/constants.dart';
 import 'package:lkl2/log_provider.dart';
 import 'package:lkl2/theme_provider.dart';
 import 'package:lkl2/ui/widgets/file_drop_zone.dart';
@@ -60,6 +61,17 @@ class _HomePageState extends State<HomePage> {
                 : 'Switch to Dark Mode',
             onSelected: () => themeProvider.toggleTheme(),
           ),
+          // --- Max Load Size options ---
+          ...kMaxFileSizeOptions.map((opt) {
+            final isActive = provider.maxFileSizeBytes == opt.value;
+            final checkmark = isActive ? '✓ ' : '   ';
+            return MenuItemData(
+              label: '${checkmark}Max Load: ${opt.label}',
+              onSelected: () {
+                provider.setMaxFileSize(opt.value);
+              },
+            );
+          }),
         ],
       ),
     ];
@@ -125,14 +137,22 @@ class _HomePageState extends State<HomePage> {
           style: TextStyle(color: MacosColors.systemGrayColor),
         ),
       ),
-      pending: () => const Center(child: ProgressCircle()),
+      loading: (phase, progress, loadedCount) {
+        // Once the provider has fetched partial data (happens after
+        // kLoadingAnimationThreshold), show the log view with the
+        // progress bar in the status bar.  Until then, show a spinner.
+        if (provider.logs.isNotEmpty) {
+          return const LogViewLayout();
+        }
+        return const Center(child: ProgressCircle());
+      },
       error: (msg) => Center(
         child: Text(
           "Error: $msg",
           style: const TextStyle(color: MacosColors.systemRedColor),
         ),
       ),
-      complete: () => const LogViewLayout(),
+      complete: (totalCount, truncated) => const LogViewLayout(),
     );
   }
 }

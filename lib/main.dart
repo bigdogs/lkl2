@@ -56,7 +56,13 @@ class Lkl2 extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => LogProvider()),
+        ChangeNotifierProvider(
+          create: (_) {
+            final provider = LogProvider();
+            provider.init(); // Load persisted settings (fire-and-forget)
+            return provider;
+          },
+        ),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: Consumer<ThemeProvider>(

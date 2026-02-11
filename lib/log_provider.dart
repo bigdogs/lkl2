@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:lkl2/constants.dart';
 import 'package:lkl2/src/rust/file.dart';
 import 'package:lkl2/data/repository/log_repository.dart';
 
@@ -59,8 +61,6 @@ class LogProvider extends ChangeNotifier {
   List<FilterCondition> get filters => _filters;
   String get lastSearchQuery => _lastSearchQuery;
 
-  // String _ftsQuery = "";
-
   // Search Results (Bottom Panel)
   List<Log> _searchResults = [];
   bool _isSearching = false;
@@ -73,6 +73,27 @@ class LogProvider extends ChangeNotifier {
 
   Timer? _statusTimer;
 
+  // --- Progressive loading state ---
+  DateTime? _openTimestamp;
+
+  /// Current progress 0.0–1.0 while loading, null otherwise.
+  double? _loadProgress;
+
+  /// Current loading phase label ("reading" / "indexing"), null when idle.
+  String? _loadPhase;
+
+  /// Number of rows loaded so far (valid while loading).
+  int _loadedCount = 0;
+
+  /// Whether the loaded file was truncated.
+  bool _truncated = false;
+
+  /// User-configurable max file size in bytes.
+  /// `null` means unlimited (maps to `0` on Rust side).
+  int? _maxFileSizeBytes = kDefaultMaxFileSize;
+
+  // --- Public getters ---
+
   FileStatus get status => _status;
   List<Log> get logs => _logs;
   int get totalCount => _totalCount;
@@ -82,12 +103,44 @@ class LogProvider extends ChangeNotifier {
   bool get showLineNumbers => _showLineNumbers;
   String? get currentFilePath => _currentFilePath;
   bool get hasSelection => _hasSelection;
+  double? get loadProgress => _loadProgress;
+  String? get loadPhase => _loadPhase;
+  int get loadedCount => _loadedCount;
+  bool get truncated => _truncated;
+  int? get maxFileSizeBytes => _maxFileSizeBytes;
+
+  /// Whether the file is currently being loaded (progressive).
+  bool get isFileLoading => _status is FileStatus_Loading;
 
   @override
   void dispose() {
     _statusTimer?.cancel();
     super.dispose();
   }
+
+  // ---------------------------------------------------------------------------
+  // Initialization (load persisted settings)
+  // ---------------------------------------------------------------------------
+
+  Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getInt(kPrefsKeyMaxFileSize);
+    if (stored != null) {
+      // -1 sentinel → unlimited (null)
+      _maxFileSizeBytes = stored == -1 ? null : stored;
+    }
+  }
+
+  Future<void> setMaxFileSize(int? bytes) async {
+    _maxFileSizeBytes = bytes;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(kPrefsKeyMaxFileSize, bytes ?? -1);
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // File open / polling
+  // ---------------------------------------------------------------------------
 
   Future<void> pickAndOpenFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
@@ -97,50 +150,105 @@ class LogProvider extends ChangeNotifier {
   }
 
   Future<void> openLogFile(String path) async {
-    _status = const FileStatus.pending();
+    _status = FileStatus.loading(
+      phase: 'reading',
+      progress: 0,
+      loadedCount: BigInt.zero,
+    );
     _logs = [];
     _searchResults = [];
     _totalCount = 0;
+    _loadProgress = 0;
+    _loadPhase = 'reading';
+    _loadedCount = 0;
+    _truncated = false;
+    _openTimestamp = DateTime.now();
+    _currentFilePath = path;
     notifyListeners();
 
     try {
-      await _repository.openFile(path);
+      await _repository.openFile(path, maxFileSize: _maxFileSizeBytes);
       _startPolling();
     } catch (e) {
       _status = FileStatus.error(e.toString());
+      _loadProgress = null;
+      _loadPhase = null;
       notifyListeners();
     }
   }
 
   void _startPolling() {
     _statusTimer?.cancel();
-    _statusTimer = Timer.periodic(const Duration(milliseconds: 500), (
-      timer,
-    ) async {
-      final newStatus = await _repository.getFileStatus();
-      _status = newStatus;
-      notifyListeners();
-
-      _status.maybeWhen(
-        complete: () {
-          timer.cancel();
-          fetchLogs(); // Initial fetch
-        },
-        error: (_) {
-          timer.cancel();
-        },
-        orElse: () {},
-      );
-    });
+    _statusTimer = Timer.periodic(kFastPollInterval, (_) => _pollStatus());
   }
 
-  Future<void> fetchLogs({int limit = 100, int offset = 0}) async {
-    // Only fetch if complete
-    if (_status is! FileStatus_Complete) return;
+  Future<void> _pollStatus() async {
+    final newStatus = await _repository.getFileStatus();
+    _status = newStatus;
 
+    final elapsed = DateTime.now().difference(_openTimestamp!);
+    final pastThreshold = elapsed >= kLoadingAnimationThreshold;
+
+    // Upgrade poll interval once past the animation threshold.
+    if (pastThreshold &&
+        _statusTimer != null &&
+        _statusTimer!.tick > 0 &&
+        _statusTimer!.tick <
+            (kLoadingAnimationThreshold.inMilliseconds ~/
+                    kFastPollInterval.inMilliseconds) +
+                2) {
+      _statusTimer?.cancel();
+      _statusTimer = Timer.periodic(kSlowPollInterval, (_) => _pollStatus());
+    }
+
+    _status.when(
+      uninit: () {},
+      loading: (phase, progress, loadedCount) {
+        _loadPhase = phase;
+        _loadProgress = progress;
+        _loadedCount = loadedCount.toInt();
+
+        // After the animation threshold, show data + trigger searches.
+        if (pastThreshold) {
+          _refreshDataDuringLoading();
+        }
+      },
+      complete: (totalCount, truncated) {
+        _loadProgress = null;
+        _loadPhase = null;
+        _loadedCount = totalCount.toInt();
+        _truncated = truncated;
+        _statusTimer?.cancel();
+        _statusTimer = null;
+        fetchLogs();
+      },
+      error: (msg) {
+        _loadProgress = null;
+        _loadPhase = null;
+        _statusTimer?.cancel();
+        _statusTimer = null;
+      },
+    );
+
+    notifyListeners();
+  }
+
+  /// Fetch whatever data is available and re-run the active search.
+  void _refreshDataDuringLoading() {
+    fetchLogs();
+    if (_lastSearchQuery.isNotEmpty || _filterSql.isNotEmpty) {
+      search(_lastSearchQuery);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Data fetching
+  // ---------------------------------------------------------------------------
+
+  Future<void> fetchLogs({int limit = 100, int offset = 0}) async {
     try {
       final result = await _repository.getLogs(
-        filterSql: "", // Main window is never filtered
+        filterSql: "",
         ftsQuery: "",
         limit: limit,
         offset: offset,
@@ -194,7 +302,6 @@ class LogProvider extends ChangeNotifier {
   }
 
   Future<void> setFilter(String filter) async {
-    // Legacy/Manual SQL support
     _filterSql = filter;
     await search(_lastSearchQuery);
   }
@@ -253,7 +360,17 @@ class LogProvider extends ChangeNotifier {
     return await _repository.getLogDetail(id);
   }
 
-  Future<List<String>> getFieldValues(String field, String search, {int limit = 20, int offset = 0}) {
-    return _repository.getFieldValues(field: field, search: search, limit: limit, offset: offset);
+  Future<List<String>> getFieldValues(
+    String field,
+    String search, {
+    int limit = 20,
+    int offset = 0,
+  }) {
+    return _repository.getFieldValues(
+      field: field,
+      search: search,
+      limit: limit,
+      offset: offset,
+    );
   }
 }

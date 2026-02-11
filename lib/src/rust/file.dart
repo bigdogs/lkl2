@@ -8,12 +8,17 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'file.freezed.dart';
 
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AppState`
+// These functions are ignored because they are not marked as `pub`: `load_file_in_worker`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// 1.1 dart打开文件 -> rust后台开启线程处理文件
-Future<void> openFile({required String path}) =>
-    RustLib.instance.api.crateFileOpenFile(path: path);
+///
+/// `max_file_size`: maximum bytes to load.  `None` uses the default
+/// (`DEFAULT_MAX_FILE_SIZE`).  `0` means unlimited.
+Future<void> openFile({required String path, BigInt? maxFileSize}) => RustLib
+    .instance
+    .api
+    .crateFileOpenFile(path: path, maxFileSize: maxFileSize);
 
 /// 1.2 dart查询文件状态
 Future<FileStatus> getFileStatus() =>
@@ -59,8 +64,20 @@ sealed class FileStatus with _$FileStatus {
   const FileStatus._();
 
   const factory FileStatus.uninit() = FileStatus_Uninit;
-  const factory FileStatus.pending() = FileStatus_Pending;
-  const factory FileStatus.complete() = FileStatus_Complete;
+  const factory FileStatus.loading({
+    /// "reading" or "indexing"
+    required String phase,
+
+    /// 0.0 – 1.0
+    required double progress,
+
+    /// Items processed so far in the current phase.
+    required BigInt loadedCount,
+  }) = FileStatus_Loading;
+  const factory FileStatus.complete({
+    required BigInt totalCount,
+    required bool truncated,
+  }) = FileStatus_Complete;
   const factory FileStatus.error(String field0) = FileStatus_Error;
 }
 

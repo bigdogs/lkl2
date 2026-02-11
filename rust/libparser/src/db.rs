@@ -41,6 +41,24 @@ impl Db {
         Ok(())
     }
 
+    /// Incrementally index a batch of rows into the FTS5 table.
+    /// Indexes rows whose `id` is in `(from_id, from_id + batch_size]`.
+    pub fn index_fts_batch(&self, from_id: i64, batch_size: i64) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO logs_fts(rowid, raw) SELECT id, raw FROM logs WHERE id > ?1 AND id <= ?2",
+            [from_id, from_id + batch_size],
+        )?;
+        Ok(())
+    }
+
+    /// Returns the total number of rows in the `logs` table.
+    pub fn get_row_count(&self) -> Result<i64> {
+        let count: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM logs", [], |row| row.get(0))?;
+        Ok(count)
+    }
+
     pub fn insert_batch(&mut self, rows: &[(String, HashMap<String, String>)]) -> Result<()> {
         let tx = self.conn.transaction()?;
         {
