@@ -6,6 +6,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:lkl2/src/rust/frb_generated.dart';
+import 'package:lkl2/src/rust/file.dart' as rust_file;
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:lkl2/log_provider.dart';
 import 'package:lkl2/theme_provider.dart';
@@ -18,6 +20,12 @@ Future<void> main() async {
         ? ExternalLibrary.process(iKnowHowToUseIt: true)
         : ExternalLibrary.open(_defaultDylibFileName()),
   );
+  final appSupportDir = await getApplicationSupportDirectory();
+  final logDir = Directory('${appSupportDir.path}/logs');
+  if (!logDir.existsSync()) {
+    logDir.createSync(recursive: true);
+  }
+  await rust_file.init(logDir: logDir.path);
 
   await windowManager.ensureInitialized();
 

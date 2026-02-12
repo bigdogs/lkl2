@@ -25,10 +25,36 @@ class _BottomAreaState extends State<BottomArea> {
   List<String> _fields = [];
   bool _isLoadingFields = true;
 
+  /// Tracks the last file generation we handled so we can detect reopen/reload.
+  int _lastFileGeneration = -1;
+
   @override
   void initState() {
     super.initState();
     _loadFields();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _checkFileGenerationChange();
+  }
+
+  /// Detects file reopen/reload via the provider's generation counter
+  /// and resets local UI state (search text, value input, filters).
+  void _checkFileGenerationChange() {
+    final gen = context.read<LogProvider>().fileGeneration;
+    if (_lastFileGeneration == -1) {
+      // First time — just record it, don't reset.
+      _lastFileGeneration = gen;
+      return;
+    }
+    if (_lastFileGeneration != gen) {
+      _lastFileGeneration = gen;
+      _searchController.clear();
+      _valueController.clear();
+      _loadFields();
+    }
   }
 
   Future<void> _loadFields() async {

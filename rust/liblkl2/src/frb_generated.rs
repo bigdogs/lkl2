@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1637013345;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -468227548;
 
 // Section: executor
 
@@ -229,6 +229,41 @@ fn wire__crate__file__get_render_config_impl(
         },
     )
 }
+fn wire__crate__file__init_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "init",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_log_dir = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok({
+                        crate::file::init(api_log_dir);
+                    })?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__file__open_file_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -306,19 +341,19 @@ impl SseDecode for f64 {
     }
 }
 
-impl SseDecode for crate::file::FileStatus {
+impl SseDecode for crate::worker::FileStatus {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut tag_ = <i32>::sse_decode(deserializer);
         match tag_ {
             0 => {
-                return crate::file::FileStatus::Uninit;
+                return crate::worker::FileStatus::Uninit;
             }
             1 => {
                 let mut var_phase = <String>::sse_decode(deserializer);
                 let mut var_progress = <f64>::sse_decode(deserializer);
                 let mut var_loadedCount = <u64>::sse_decode(deserializer);
-                return crate::file::FileStatus::Loading {
+                return crate::worker::FileStatus::Loading {
                     phase: var_phase,
                     progress: var_progress,
                     loaded_count: var_loadedCount,
@@ -327,14 +362,14 @@ impl SseDecode for crate::file::FileStatus {
             2 => {
                 let mut var_totalCount = <u64>::sse_decode(deserializer);
                 let mut var_truncated = <bool>::sse_decode(deserializer);
-                return crate::file::FileStatus::Complete {
+                return crate::worker::FileStatus::Complete {
                     total_count: var_totalCount,
                     truncated: var_truncated,
                 };
             }
             3 => {
                 let mut var_field0 = <String>::sse_decode(deserializer);
-                return crate::file::FileStatus::Error(var_field0);
+                return crate::worker::FileStatus::Error(var_field0);
             }
             _ => {
                 unimplemented!("");
@@ -626,7 +661,8 @@ fn pde_ffi_dispatcher_primary_impl(
         3 => wire__crate__file__get_log_detail_impl(port, ptr, rust_vec_len, data_len),
         4 => wire__crate__file__get_logs_impl(port, ptr, rust_vec_len, data_len),
         5 => wire__crate__file__get_render_config_impl(port, ptr, rust_vec_len, data_len),
-        6 => wire__crate__file__open_file_impl(port, ptr, rust_vec_len, data_len),
+        6 => wire__crate__file__init_impl(port, ptr, rust_vec_len, data_len),
+        7 => wire__crate__file__open_file_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -646,11 +682,11 @@ fn pde_ffi_dispatcher_sync_impl(
 // Section: rust2dart
 
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::file::FileStatus {
+impl flutter_rust_bridge::IntoDart for crate::worker::FileStatus {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
-            crate::file::FileStatus::Uninit => [0.into_dart()].into_dart(),
-            crate::file::FileStatus::Loading {
+            crate::worker::FileStatus::Uninit => [0.into_dart()].into_dart(),
+            crate::worker::FileStatus::Loading {
                 phase,
                 progress,
                 loaded_count,
@@ -661,7 +697,7 @@ impl flutter_rust_bridge::IntoDart for crate::file::FileStatus {
                 loaded_count.into_into_dart().into_dart(),
             ]
             .into_dart(),
-            crate::file::FileStatus::Complete {
+            crate::worker::FileStatus::Complete {
                 total_count,
                 truncated,
             } => [
@@ -670,7 +706,7 @@ impl flutter_rust_bridge::IntoDart for crate::file::FileStatus {
                 truncated.into_into_dart().into_dart(),
             ]
             .into_dart(),
-            crate::file::FileStatus::Error(field0) => {
+            crate::worker::FileStatus::Error(field0) => {
                 [3.into_dart(), field0.into_into_dart().into_dart()].into_dart()
             }
             _ => {
@@ -679,9 +715,9 @@ impl flutter_rust_bridge::IntoDart for crate::file::FileStatus {
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::file::FileStatus {}
-impl flutter_rust_bridge::IntoIntoDart<crate::file::FileStatus> for crate::file::FileStatus {
-    fn into_into_dart(self) -> crate::file::FileStatus {
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::worker::FileStatus {}
+impl flutter_rust_bridge::IntoIntoDart<crate::worker::FileStatus> for crate::worker::FileStatus {
+    fn into_into_dart(self) -> crate::worker::FileStatus {
         self
     }
 }
@@ -825,14 +861,14 @@ impl SseEncode for f64 {
     }
 }
 
-impl SseEncode for crate::file::FileStatus {
+impl SseEncode for crate::worker::FileStatus {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         match self {
-            crate::file::FileStatus::Uninit => {
+            crate::worker::FileStatus::Uninit => {
                 <i32>::sse_encode(0, serializer);
             }
-            crate::file::FileStatus::Loading {
+            crate::worker::FileStatus::Loading {
                 phase,
                 progress,
                 loaded_count,
@@ -842,7 +878,7 @@ impl SseEncode for crate::file::FileStatus {
                 <f64>::sse_encode(progress, serializer);
                 <u64>::sse_encode(loaded_count, serializer);
             }
-            crate::file::FileStatus::Complete {
+            crate::worker::FileStatus::Complete {
                 total_count,
                 truncated,
             } => {
@@ -850,7 +886,7 @@ impl SseEncode for crate::file::FileStatus {
                 <u64>::sse_encode(total_count, serializer);
                 <bool>::sse_encode(truncated, serializer);
             }
-            crate::file::FileStatus::Error(field0) => {
+            crate::worker::FileStatus::Error(field0) => {
                 <i32>::sse_encode(3, serializer);
                 <String>::sse_encode(field0, serializer);
             }

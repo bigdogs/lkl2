@@ -30,3 +30,4 @@ If the project involves the following features, use the specified libraries. Do 
 2. Maintain single responsibility. A function should try to do only one thing.
 3. Maintain code readability. Function names should express their meaning.
 4. Maintain decoupling. Use design patterns appropriately.
+5. 如果功能独立、请在合适的目录下创建新模块，不要把所有代码都放在一个文件里。

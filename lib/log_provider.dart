@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lkl2/constants.dart';
 import 'package:lkl2/src/rust/file.dart';
+import 'package:lkl2/src/rust/worker.dart';
 import 'package:lkl2/data/repository/log_repository.dart';
 
 enum FilterMode {
@@ -73,6 +74,12 @@ class LogProvider extends ChangeNotifier {
 
   Timer? _statusTimer;
 
+  // --- File generation (incremented on each open/reload) ---
+  int _fileGeneration = 0;
+
+  /// Whether a file has ever been fully loaded in this session.
+  bool _hasEverLoaded = false;
+
   // --- Progressive loading state ---
   DateTime? _openTimestamp;
 
@@ -108,6 +115,8 @@ class LogProvider extends ChangeNotifier {
   int get loadedCount => _loadedCount;
   bool get truncated => _truncated;
   int? get maxFileSizeBytes => _maxFileSizeBytes;
+  int get fileGeneration => _fileGeneration;
+  bool get hasEverLoaded => _hasEverLoaded;
 
   /// Whether the file is currently being loaded (progressive).
   bool get isFileLoading => _status is FileStatus_Loading;
@@ -150,14 +159,30 @@ class LogProvider extends ChangeNotifier {
   }
 
   Future<void> openLogFile(String path) async {
+    // Cancel any ongoing polling first
+    _statusTimer?.cancel();
+    _statusTimer = null;
+
+    // Increment generation to signal UI widgets to reset local state
+    _fileGeneration++;
+
     _status = FileStatus.loading(
       phase: 'reading',
       progress: 0,
       loadedCount: BigInt.zero,
     );
     _logs = [];
-    _searchResults = [];
     _totalCount = 0;
+
+    // Reset all search/filter state so the UI starts clean
+    _filters.clear();
+    _filterSql = "";
+    _lastSearchQuery = "";
+    _searchResults = [];
+    _isSearching = false;
+    _searchError = null;
+    _hasSelection = false;
+
     _loadProgress = 0;
     _loadPhase = 'reading';
     _loadedCount = 0;
@@ -204,16 +229,26 @@ class LogProvider extends ChangeNotifier {
     _status.when(
       uninit: () {},
       loading: (phase, progress, loadedCount) {
+        final count = loadedCount.toInt();
+        final changed =
+            _loadPhase != phase ||
+            _loadProgress != progress ||
+            _loadedCount != count;
         _loadPhase = phase;
         _loadProgress = progress;
-        _loadedCount = loadedCount.toInt();
+        _loadedCount = count;
 
         // After the animation threshold, show data + trigger searches.
         if (pastThreshold) {
           _refreshDataDuringLoading();
         }
+
+        if (changed) {
+          notifyListeners();
+        }
       },
       complete: (totalCount, truncated) {
+        _hasEverLoaded = true;
         _loadProgress = null;
         _loadPhase = null;
         _loadedCount = totalCount.toInt();
@@ -221,23 +256,24 @@ class LogProvider extends ChangeNotifier {
         _statusTimer?.cancel();
         _statusTimer = null;
         fetchLogs();
+        notifyListeners();
       },
       error: (msg) {
         _loadProgress = null;
         _loadPhase = null;
         _statusTimer?.cancel();
         _statusTimer = null;
+        notifyListeners();
       },
     );
-
-    notifyListeners();
   }
 
   /// Fetch whatever data is available and re-run the active search.
+  /// Called silently during loading — no loading spinners shown.
   void _refreshDataDuringLoading() {
     fetchLogs();
     if (_lastSearchQuery.isNotEmpty || _filterSql.isNotEmpty) {
-      search(_lastSearchQuery);
+      _silentSearch(_lastSearchQuery);
     }
   }
 
@@ -253,9 +289,11 @@ class LogProvider extends ChangeNotifier {
         limit: limit,
         offset: offset,
       );
-      _logs = result.logs;
-      _totalCount = result.totalCount;
-      notifyListeners();
+      if (_totalCount != result.totalCount || !listEquals(_logs, result.logs)) {
+        _logs = result.logs;
+        _totalCount = result.totalCount;
+        notifyListeners();
+      }
     } catch (e) {
       debugPrint("Error fetching logs: $e");
     }
@@ -345,7 +383,9 @@ class LogProvider extends ChangeNotifier {
         limit: 100, // Limit search results for now
         offset: 0,
       );
-      _searchResults = result.logs;
+      if (!listEquals(_searchResults, result.logs)) {
+        _searchResults = result.logs;
+      }
     } catch (e) {
       debugPrint("Error searching: $e");
       _searchError = e.toString();
@@ -353,6 +393,24 @@ class LogProvider extends ChangeNotifier {
     } finally {
       _isSearching = false;
       notifyListeners();
+    }
+  }
+
+  /// Silent search used during progressive loading — no isSearching flicker.
+  Future<void> _silentSearch(String query) async {
+    try {
+      final result = await _repository.getLogs(
+        filterSql: _filterSql,
+        ftsQuery: query,
+        limit: 100,
+        offset: 0,
+      );
+      if (!listEquals(_searchResults, result.logs)) {
+        _searchResults = result.logs;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("Error in silent search: $e");
     }
   }
 

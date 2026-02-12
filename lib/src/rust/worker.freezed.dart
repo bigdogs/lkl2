@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
-part of 'file.dart';
+part of 'worker.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -222,11 +222,8 @@ class FileStatus_Loading extends FileStatus {
   const FileStatus_Loading({required this.phase, required this.progress, required this.loadedCount}): super._();
   
 
-/// "reading" or "indexing"
  final  String phase;
-/// 0.0 – 1.0
  final  double progress;
-/// Items processed so far in the current phase.
  final  BigInt loadedCount;
 
 /// Create a copy of FileStatus

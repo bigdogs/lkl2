@@ -1,4 +1,5 @@
 import 'package:lkl2/src/rust/file.dart' as rust_file;
+import 'package:lkl2/src/rust/worker.dart' as rust_file;
 
 abstract class ILogRepository {
   Future<void> openFile(String path, {int? maxFileSize});

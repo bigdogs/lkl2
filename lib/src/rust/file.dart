@@ -5,28 +5,26 @@
 
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
-import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
-part 'file.freezed.dart';
+import 'worker.dart';
 
-// These functions are ignored because they are not marked as `pub`: `load_file_in_worker`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These functions are ignored because they are not marked as `pub`: `build_render_config`, `map_query_rows`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`
 
-/// 1.1 dart打开文件 -> rust后台开启线程处理文件
-///
-/// `max_file_size`: maximum bytes to load.  `None` uses the default
-/// (`DEFAULT_MAX_FILE_SIZE`).  `0` means unlimited.
+/// Global init. `log_dir` is a writable directory for the log file.
+Future<void> init({required String logDir}) =>
+    RustLib.instance.api.crateFileInit(logDir: logDir);
+
+/// Open a log file.  Loading happens on a background thread.
 Future<void> openFile({required String path, BigInt? maxFileSize}) => RustLib
     .instance
     .api
     .crateFileOpenFile(path: path, maxFileSize: maxFileSize);
 
-/// 1.2 dart查询文件状态
+/// Poll the current loading status.
 Future<FileStatus> getFileStatus() =>
     RustLib.instance.api.crateFileGetFileStatus();
 
-/// 1.3 dart查询日志 （这里不返回详细信息)
-/// filter_sql: SQL WHERE clause fragment (e.g., "eventName = 'Error'")
-/// fts_query: Full text search query
+/// Query logs with optional SQL filter / FTS search.
 Future<Logs> getLogs({
   required String filterSql,
   required String ftsQuery,
@@ -39,11 +37,11 @@ Future<Logs> getLogs({
   offset: offset,
 );
 
-/// 1.4 dart查询特定日志的详细信息
+/// Get the raw JSON text for one log entry.
 Future<String?> getLogDetail({required int id}) =>
     RustLib.instance.api.crateFileGetLogDetail(id: id);
 
-/// 1.5 dart查询某个字段的可能值 (用于自动补全)
+/// Get distinct values of a field (for autocomplete).
 Future<List<String>> getFieldValues({
   required String field,
   required String search,
@@ -56,30 +54,9 @@ Future<List<String>> getFieldValues({
   offset: offset,
 );
 
+/// Load the render configuration from the embedded config file.
 Future<RenderConfig> getRenderConfig() =>
     RustLib.instance.api.crateFileGetRenderConfig();
-
-@freezed
-sealed class FileStatus with _$FileStatus {
-  const FileStatus._();
-
-  const factory FileStatus.uninit() = FileStatus_Uninit;
-  const factory FileStatus.loading({
-    /// "reading" or "indexing"
-    required String phase,
-
-    /// 0.0 – 1.0
-    required double progress,
-
-    /// Items processed so far in the current phase.
-    required BigInt loadedCount,
-  }) = FileStatus_Loading;
-  const factory FileStatus.complete({
-    required BigInt totalCount,
-    required bool truncated,
-  }) = FileStatus_Complete;
-  const factory FileStatus.error(String field0) = FileStatus_Error;
-}
 
 class Log {
   final int id;

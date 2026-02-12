@@ -8,7 +8,7 @@ import 'package:lkl2/log_provider.dart';
 import 'package:lkl2/theme_provider.dart';
 import 'package:lkl2/ui/widgets/file_drop_zone.dart';
 import 'package:lkl2/ui/widgets/log_view_layout.dart';
-import 'package:lkl2/src/rust/file.dart';
+import 'package:lkl2/src/rust/worker.dart';
 import 'package:lkl2/ui/widgets/app_menu.dart';
 import 'package:macos_ui/macos_ui.dart';
 
@@ -138,10 +138,10 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       loading: (phase, progress, loadedCount) {
-        // Once the provider has fetched partial data (happens after
-        // kLoadingAnimationThreshold), show the log view with the
-        // progress bar in the status bar.  Until then, show a spinner.
-        if (provider.logs.isNotEmpty) {
+        // Keep LogViewLayout mounted during reopen/reload so that
+        // MacosSearchField's overlay doesn't crash from a disposed context.
+        // On first-ever open, show a spinner until data arrives.
+        if (provider.logs.isNotEmpty || provider.hasEverLoaded) {
           return const LogViewLayout();
         }
         return const Center(child: ProgressCircle());
